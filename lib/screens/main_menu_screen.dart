@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
+import 'management_dashboard_screen.dart';
+import 'item_catalog_screen.dart';
 
 class MainMenuScreen extends StatelessWidget {
   final User user;
@@ -18,7 +20,14 @@ class MainMenuScreen extends StatelessWidget {
             const SizedBox(height: 20),
             if (user.role == UserRole.customer) ...[
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/catalog'),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ItemCatalogScreen(currentUser: user),
+                    ),
+                  );
+                },
                 child: const Text('Item Catalog'),
               ),
               ElevatedButton(
@@ -28,7 +37,14 @@ class MainMenuScreen extends StatelessWidget {
             ],
             if (user.role == UserRole.admin || user.role == UserRole.employee) ...[
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/management_dashboard'),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ManagementDashboardScreen(currentUser: user),
+                    ),
+                  );
+                },
                 child: const Text('Management Dashboard'),
               ),
             ],

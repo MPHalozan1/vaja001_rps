@@ -5,7 +5,7 @@ class Item {
   final String subcategory;
   final int totalQuantity;
   int availableQuantity;
-  final DateTime? expectedReturnDate;
+  final double pricePerDay;
 
   Item({
     required this.id,
@@ -14,6 +14,6 @@ class Item {
     required this.subcategory,
     required this.totalQuantity,
     required this.availableQuantity,
-    this.expectedReturnDate,
+    this.pricePerDay = 0.0,
   });
 }
