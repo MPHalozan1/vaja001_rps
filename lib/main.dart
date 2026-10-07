@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'screens/sign_in_screen.dart';
-import 'screens/main_menu_screen.dart';
-import 'screens/item_catalog_screen.dart';
-import 'screens/borrow_form_screen.dart';
 import 'screens/customer_dashboard_screen.dart';
-import 'screens/management_dashboard_screen.dart';
-import 'models/user.dart';
+import 'services/data_service.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => DataService(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -19,19 +21,15 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Item Borrowing App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
       initialRoute: '/',
       routes: {
         '/': (context) => const SignInScreen(),
-        '/catalog': (context) => const ItemCatalogScreen(),
-        '/borrow': (context) => const BorrowFormScreen(),
+        // Note: '/catalog' needs currentUser, so we remove it from static routes and use push(MaterialPageRoute) in MainMenuScreen
         '/customer_dashboard': (context) => const CustomerDashboardScreen(),
-        '/management_dashboard': (context) => const ManagementDashboardScreen(),
       },
-      // Note: MainMenuScreen requires a user parameter, so it shouldn't be a simple route without arguments.
-      // Or we can pass the dummy user for testing purposes when routing dynamically.
     );
   }
 }

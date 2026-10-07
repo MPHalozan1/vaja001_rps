@@ -5,23 +5,25 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
 import 'package:vaja001_rps/main.dart';
+import 'package:vaja001_rps/services/data_service.dart';
 
 void main() {
   testWidgets('Sign in screen test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (context) => DataService(),
+        child: const MyApp(),
+      ),
+    );
 
     // Verify that we are on the Sign In screen.
-    expect(find.text('Sign In'), findsOneWidget);
-    expect(find.text('Login as:'), findsOneWidget);
-
-    // Verify buttons are present.
-    expect(find.text('Admin'), findsOneWidget);
-    expect(find.text('Employee'), findsOneWidget);
-    expect(find.text('Customer'), findsOneWidget);
+    expect(find.text('Item Borrowing System'), findsOneWidget);
+    expect(find.text('Please select a user to log in:'), findsOneWidget);
+    expect(find.text('Select a user'), findsOneWidget);
   });
 }
