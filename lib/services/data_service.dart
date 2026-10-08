@@ -46,18 +46,27 @@ class DataService extends ChangeNotifier {
   }
 
   // --- User Management ---
-  void addUser(String name, UserRole role) {
+  void addUser(User currentUser, String name, UserRole role) {
+    if (currentUser.role != UserRole.admin) {
+      throw Exception('Unauthorized: Only Admins can add users.');
+    }
     final newId = 'u${users.length + 1}'; // Simple ID generation
     users.add(User(id: newId, name: name, role: role));
     notifyListeners();
   }
 
-  void removeUser(String id) {
+  void removeUser(User currentUser, String id) {
+    if (currentUser.role != UserRole.admin) {
+      throw Exception('Unauthorized: Only Admins can remove users.');
+    }
     users.removeWhere((user) => user.id == id);
     notifyListeners();
   }
 
-  void changeUserRole(String id, UserRole newRole) {
+  void changeUserRole(User currentUser, String id, UserRole newRole) {
+    if (currentUser.role != UserRole.admin) {
+      throw Exception('Unauthorized: Only Admins can change user roles.');
+    }
     final index = users.indexWhere((user) => user.id == id);
     if (index != -1) {
       final oldUser = users[index];
@@ -67,12 +76,24 @@ class DataService extends ChangeNotifier {
   }
 
   // --- Item Management ---
-  void addItem(Item item) {
+  void addItem(User currentUser, Item item) {
+    if (currentUser.role == UserRole.customer) {
+      throw Exception('Unauthorized: Customers cannot add items.');
+    }
+    if (item.totalQuantity < 0) {
+      throw Exception('Invalid item: Quantity cannot be negative.');
+    }
+    if (item.pricePerDay < 0) {
+      throw Exception('Invalid item: Price cannot be negative.');
+    }
     items.add(item);
     notifyListeners();
   }
 
-  void removeItem(String id) {
+  void removeItem(User currentUser, String id) {
+    if (currentUser.role == UserRole.customer) {
+      throw Exception('Unauthorized: Customers cannot remove items.');
+    }
     items.removeWhere((item) => item.id == id);
     notifyListeners();
   }
@@ -107,8 +128,20 @@ class DataService extends ChangeNotifier {
   }
 
   String addBorrowRequest(String userId, String itemId, DateTime start, DateTime end) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final reqStart = DateTime(start.year, start.month, start.day);
+    final reqEnd = DateTime(end.year, end.month, end.day);
+
+    if (reqStart.isBefore(today)) {
+      return 'Error: Start date cannot be in the past.';
+    }
+    if (reqEnd.isBefore(reqStart)) {
+      return 'Error: End date cannot be before start date.';
+    }
+
     if (!isItemAvailableForDates(itemId, start, end)) {
-      return 'Item is not available for these dates.';
+      return 'Error: Dates overlap or item not available.';
     }
 
     final newId = 'br${borrowRequests.length + 1}';
