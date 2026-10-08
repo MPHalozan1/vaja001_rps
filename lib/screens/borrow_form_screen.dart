@@ -108,19 +108,10 @@ class _BorrowFormScreenState extends State<BorrowFormScreen> {
                 onPressed: () {
                   final result = dataService.addBorrowRequest(widget.currentUser.id, widget.item.id, _startDate!, _endDate!);
                   if (result == 'Success') {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reservation successful!')));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item successfully reserved')));
                     Navigator.pop(context);
                   } else {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Error'),
-                        content: Text(result),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
-                        ],
-                      ),
-                    );
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result), backgroundColor: Colors.red));
                   }
                 },
                 child: const Text('Confirm Reservation'),
