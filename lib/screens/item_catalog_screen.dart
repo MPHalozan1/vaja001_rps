@@ -35,16 +35,9 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search by name, category, or subcategory',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceVariant,
-              ),
+            child: SearchBar(
+              hintText: 'Search by name, category, or subcategory',
+              leading: const Icon(Icons.search),
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value;
