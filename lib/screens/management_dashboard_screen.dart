@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/user.dart';
 import '../models/item.dart';
+import '../models/bill.dart';
 import '../services/data_service.dart';
 
 class ManagementDashboardScreen extends StatelessWidget {
@@ -20,6 +21,7 @@ class ManagementDashboardScreen extends StatelessWidget {
             tabs: [
               Tab(icon: Icon(Icons.inventory), text: 'Items'),
               Tab(icon: Icon(Icons.people), text: 'Users'),
+              Tab(icon: Icon(Icons.receipt), text: 'Bills'),
             ],
           ),
         ),
@@ -30,9 +32,68 @@ class ManagementDashboardScreen extends StatelessWidget {
               _UsersTab()
             else
               const Center(child: Text('Only Admins can manage users.')),
+            if (currentUser.role == UserRole.admin)
+              _BillsTab()
+            else
+              const Center(child: Text('Only Admins can manage bills.')),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BillsTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final dataService = Provider.of<DataService>(context);
+    final bills = dataService.bills;
+
+    final dashboard = context.findAncestorWidgetOfExactType<ManagementDashboardScreen>();
+    final currentUser = dashboard!.currentUser;
+
+    return Column(
+      children: [
+        Expanded(
+          child: bills.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.receipt_long, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No bills found.',
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: bills.length,
+                  itemBuilder: (context, index) {
+                    final bill = bills[index];
+                    return ListTile(
+                      title: Text('Bill \$${bill.amount.toStringAsFixed(2)}'),
+                      subtitle: Text('Status: ${bill.status.name}'),
+                      trailing: bill.status == BillStatus.pendingAdminApproval
+                          ? IconButton(
+                              icon: const Icon(Icons.check, color: Colors.green),
+                              onPressed: () {
+                                try {
+                                  dataService.approveBill(currentUser, bill.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill approved')));
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                }
+                              },
+                            )
+                          : null,
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
@@ -64,11 +125,11 @@ class _ItemsTab extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.inventory_2_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                      Icon(Icons.inventory_2_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
                         'No items in inventory.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
@@ -187,11 +248,11 @@ class _UsersTab extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.people_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                      Icon(Icons.people_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
                         'No users found.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
