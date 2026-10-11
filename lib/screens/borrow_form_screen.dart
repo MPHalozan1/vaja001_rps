@@ -18,6 +18,13 @@ class BorrowFormScreen extends StatefulWidget {
 class _BorrowFormScreenState extends State<BorrowFormScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
+  final TextEditingController _quantityController = TextEditingController(text: '1');
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,21 +34,36 @@ class _BorrowFormScreenState extends State<BorrowFormScreen> {
     if (_startDate != null && _endDate != null) {
       days = _endDate!.difference(_startDate!).inDays + 1;
     }
-    final double totalPrice = days * widget.item.pricePerDay;
+    final int quantity = int.tryParse(_quantityController.text) ?? 1;
+    final double totalPrice = days * widget.item.pricePerDay * quantity;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Reserve Item')),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Item: ${widget.item.name}', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text('Price: \$${widget.item.pricePerDay}/day'),
-            const SizedBox(height: 32),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Item: ${widget.item.name}', style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              Text('Price: \$${widget.item.pricePerDay}/day'),
+              const SizedBox(height: 16),
 
-            Row(
+              TextField(
+                controller: _quantityController,
+                decoration: const InputDecoration(
+                  labelText: 'Quantity',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (val) {
+                  setState(() {});
+                },
+              ),
+              const SizedBox(height: 32),
+
+              Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
@@ -89,35 +111,37 @@ class _BorrowFormScreenState extends State<BorrowFormScreen> {
             ),
             const SizedBox(height: 32),
 
-            if (_startDate != null && _endDate != null) ...[
-              Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text('Duration: $days days', style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      Text('Estimated Total: \$${totalPrice.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                    ],
+              if (_startDate != null && _endDate != null) ...[
+                Card(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        Text('Duration: $days days | Quantity: $quantity', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Text('Estimated Total: \$${totalPrice.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: () {
-                  final result = dataService.addBorrowRequest(widget.currentUser.id, widget.item.id, _startDate!, _endDate!);
-                  if (result == 'Success') {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item successfully reserved')));
-                    Navigator.pop(context);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result), backgroundColor: Colors.red));
-                  }
-                },
-                child: const Text('Confirm Reservation'),
-              ),
-            ]
-          ],
+                const SizedBox(height: 32),
+                FilledButton(
+                  onPressed: () {
+                    final reqQty = int.tryParse(_quantityController.text) ?? 0;
+                    final result = dataService.addBorrowRequest(widget.currentUser, widget.item.id, _startDate!, _endDate!, reqQty);
+                    if (result == 'Success') {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item successfully reserved')));
+                      Navigator.pop(context);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result), backgroundColor: Colors.red));
+                    }
+                  },
+                  child: const Text('Confirm Reservation'),
+                ),
+              ]
+            ],
+          ),
         ),
       ),
     );

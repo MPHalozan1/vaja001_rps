@@ -35,16 +35,9 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search by name, category, or subcategory',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceVariant,
-              ),
+            child: SearchBar(
+              hintText: 'Search by name, category, or subcategory',
+              leading: const Icon(Icons.search),
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value;
@@ -58,13 +51,13 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                        Icon(Icons.search_off, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
                         Text(
                           'No items found matching "$_searchQuery"',
                           style: TextStyle(
                             fontSize: 18,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                           ),
                           textAlign: TextAlign.center,
                         ),

@@ -64,11 +64,11 @@ class _ItemsTab extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.inventory_2_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                      Icon(Icons.inventory_2_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
                         'No items in inventory.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
@@ -106,56 +106,75 @@ class _ItemsTab extends StatelessWidget {
     final qtyController = TextEditingController();
     final priceController = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Add New Item'),
-          content: SingleChildScrollView(
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 24,
+          ),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-                TextField(controller: catController, decoration: const InputDecoration(labelText: 'Category')),
-                TextField(controller: subcatController, decoration: const InputDecoration(labelText: 'Subcategory')),
-                TextField(controller: qtyController, decoration: const InputDecoration(labelText: 'Total Quantity'), keyboardType: TextInputType.number),
-                TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Price Per Day'), keyboardType: TextInputType.number),
+                Text('Add New Item', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(controller: catController, decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(controller: subcatController, decoration: const InputDecoration(labelText: 'Subcategory', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(controller: qtyController, decoration: const InputDecoration(labelText: 'Total Quantity', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+                const SizedBox(height: 12),
+                TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Price Per Day', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: () {
+                        final qty = int.tryParse(qtyController.text) ?? -1;
+                        final price = double.tryParse(priceController.text) ?? -1.0;
+
+                        if (qty < 0 || price < 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error: Quantity and Price must be 0 or greater.'), backgroundColor: Colors.red));
+                          return;
+                        }
+
+                        final newItem = Item(
+                          id: 'i${DateTime.now().millisecondsSinceEpoch}',
+                          name: nameController.text.isNotEmpty ? nameController.text : 'Unknown',
+                          category: catController.text.isNotEmpty ? catController.text : 'Misc',
+                          subcategory: subcatController.text,
+                          totalQuantity: qty,
+                          availableQuantity: qty,
+                          pricePerDay: price,
+                        );
+
+                        try {
+                          dataService.addItem(currentUser, newItem);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added successfully.')));
+                          Navigator.pop(context);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                        }
+                      },
+                      child: const Text('Add Item'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            TextButton(
-              onPressed: () {
-                final qty = int.tryParse(qtyController.text) ?? -1;
-                final price = double.tryParse(priceController.text) ?? -1.0;
-
-                if (qty < 0 || price < 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error: Quantity and Price must be 0 or greater.'), backgroundColor: Colors.red));
-                  return;
-                }
-
-                final newItem = Item(
-                  id: 'i${DateTime.now().millisecondsSinceEpoch}',
-                  name: nameController.text.isNotEmpty ? nameController.text : 'Unknown',
-                  category: catController.text.isNotEmpty ? catController.text : 'Misc',
-                  subcategory: subcatController.text,
-                  totalQuantity: qty,
-                  availableQuantity: qty,
-                  pricePerDay: price,
-                );
-
-                try {
-                  dataService.addItem(currentUser, newItem);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added successfully.')));
-                  Navigator.pop(context);
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
         );
       },
     );
@@ -187,11 +206,11 @@ class _UsersTab extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.people_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                      Icon(Icons.people_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
                         'No users found.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
@@ -245,21 +264,31 @@ class _UsersTab extends StatelessWidget {
     final nameController = TextEditingController();
     UserRole selectedRole = UserRole.customer;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Add New User'),
-              content: Column(
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 24,
+              ),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
+                  Text('Add New User', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 16),
-                  DropdownButton<UserRole>(
+                  TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder())),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<UserRole>(
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
                     isExpanded: true,
-                    value: selectedRole,
+                    initialValue: selectedRole,
                     items: UserRole.values.map((role) {
                       return DropdownMenuItem(value: role, child: Text(role.name));
                     }).toList(),
@@ -267,25 +296,31 @@ class _UsersTab extends StatelessWidget {
                       if (val != null) setState(() => selectedRole = val);
                     },
                   ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: () {
+                          if (nameController.text.isNotEmpty) {
+                            try {
+                              dataService.addUser(currentUser, nameController.text, selectedRole);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User added successfully.')));
+                              Navigator.pop(context);
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                            }
+                          }
+                        },
+                        child: const Text('Add User'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                TextButton(
-                  onPressed: () {
-                    if (nameController.text.isNotEmpty) {
-                      try {
-                        dataService.addUser(currentUser, nameController.text, selectedRole);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User added successfully.')));
-                        Navigator.pop(context);
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                      }
-                    }
-                  },
-                  child: const Text('Add'),
-                ),
-              ],
             );
           },
         );

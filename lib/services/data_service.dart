@@ -77,8 +77,8 @@ class DataService extends ChangeNotifier {
 
   // --- Item Management ---
   void addItem(User currentUser, Item item) {
-    if (currentUser.role == UserRole.customer) {
-      throw Exception('Unauthorized: Customers cannot add items.');
+    if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
+      throw Exception('Unauthorized: Only Admins or Employees can add items.');
     }
     if (item.totalQuantity < 0) {
       throw Exception('Invalid item: Quantity cannot be negative.');
@@ -91,15 +91,15 @@ class DataService extends ChangeNotifier {
   }
 
   void removeItem(User currentUser, String id) {
-    if (currentUser.role == UserRole.customer) {
-      throw Exception('Unauthorized: Customers cannot remove items.');
+    if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
+      throw Exception('Unauthorized: Only Admins or Employees can remove items.');
     }
     items.removeWhere((item) => item.id == id);
     notifyListeners();
   }
 
   // --- Reservation Logic ---
-  bool isItemAvailableForDates(String itemId, DateTime start, DateTime end) {
+  bool isItemAvailableForDates(String itemId, DateTime start, DateTime end, int quantity) {
     // Normalization to start of day for comparison
     final reqStart = DateTime(start.year, start.month, start.day);
     final reqEnd = DateTime(end.year, end.month, end.day);
@@ -115,19 +115,27 @@ class DataService extends ChangeNotifier {
       final minEnd = reqEnd.isBefore(existingEnd) ? reqEnd : existingEnd;
 
       if (maxStart.isBefore(minEnd) || maxStart.isAtSameMomentAs(minEnd)) {
-        reservedCount++;
+        reservedCount += req.quantity;
       }
     }
 
     final item = items.firstWhere((i) => i.id == itemId);
-    return reservedCount < item.totalQuantity;
+    return (reservedCount + quantity) <= item.totalQuantity;
   }
 
   List<BorrowRequest> getReservationsForItem(String itemId) {
     return borrowRequests.where((req) => req.itemId == itemId).toList();
   }
 
-  String addBorrowRequest(String userId, String itemId, DateTime start, DateTime end) {
+  String addBorrowRequest(User currentUser, String itemId, DateTime start, DateTime end, int quantity) {
+    if (currentUser.role != UserRole.customer) {
+      return 'Error: Only customers can reserve items.';
+    }
+
+    if (quantity <= 0) {
+      return 'Error: Quantity must be greater than zero.';
+    }
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final reqStart = DateTime(start.year, start.month, start.day);
@@ -140,17 +148,18 @@ class DataService extends ChangeNotifier {
       return 'Error: End date cannot be before start date.';
     }
 
-    if (!isItemAvailableForDates(itemId, start, end)) {
-      return 'Error: Dates overlap or item not available.';
+    if (!isItemAvailableForDates(itemId, start, end, quantity)) {
+      return 'Error: Dates overlap or not enough items available.';
     }
 
     final newId = 'br${borrowRequests.length + 1}';
     borrowRequests.add(BorrowRequest(
       id: newId,
-      userId: userId,
+      userId: currentUser.id,
       itemId: itemId,
       startDate: start,
       returnDate: end,
+      quantity: quantity,
     ));
 
     // In a real app we might update availableQuantity based on CURRENT date,

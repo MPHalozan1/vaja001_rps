@@ -4,6 +4,7 @@ class BorrowRequest {
   final String itemId;
   final DateTime startDate;
   final DateTime returnDate;
+  final int quantity;
   final String? disclaimers;
   final double? penalties;
 
@@ -13,6 +14,7 @@ class BorrowRequest {
     required this.itemId,
     required this.startDate,
     required this.returnDate,
+    required this.quantity,
     this.disclaimers,
     this.penalties,
   });
