@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       title: 'Item Borrowing App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blueAccent,
+          seedColor: Colors.indigo,
           brightness: Brightness.light,
         ),
         useMaterial3: true,
@@ -42,6 +42,9 @@ class MyApp extends StatelessWidget {
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,
+        ),
+        snackBarTheme: const SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
         ),
       ),
       initialRoute: '/',
