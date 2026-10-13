@@ -103,6 +103,7 @@ class _ItemsTab extends StatelessWidget {
   }
 
   void _showAddItemBottomSheet(BuildContext context, DataService dataService, User currentUser) {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
     final catController = TextEditingController();
     final subcatController = TextEditingController();
@@ -120,57 +121,96 @@ class _ItemsTab extends StatelessWidget {
             right: 16,
             top: 16,
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Add New Item', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 16),
-                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-                TextField(controller: catController, decoration: const InputDecoration(labelText: 'Category')),
-                TextField(controller: subcatController, decoration: const InputDecoration(labelText: 'Subcategory')),
-                TextField(controller: qtyController, decoration: const InputDecoration(labelText: 'Total Quantity'), keyboardType: TextInputType.number),
-                TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Price Per Day'), keyboardType: TextInputType.number),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                    FilledButton(
-                      onPressed: () {
-                        final qty = int.tryParse(qtyController.text) ?? -1;
-                        final price = double.tryParse(priceController.text) ?? -1.0;
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('Add New Item', style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Name *', helperText: 'e.g., MacBook Pro 16"'),
+                        validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: catController,
+                        decoration: const InputDecoration(labelText: 'Category *', helperText: 'e.g., IT & Computers'),
+                        validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: subcatController,
+                        decoration: const InputDecoration(labelText: 'Subcategory *', helperText: 'e.g., Laptops'),
+                        validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: qtyController,
+                        decoration: const InputDecoration(labelText: 'Total Quantity *', helperText: 'Must be an integer >= 0'),
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Required';
+                          if (int.tryParse(v) == null || int.parse(v) < 0) return 'Invalid quantity';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: priceController,
+                        decoration: const InputDecoration(labelText: 'Price Per Day *', helperText: 'e.g., 50.00'),
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Required';
+                          if (double.tryParse(v) == null || double.parse(v) < 0) return 'Invalid price';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                          FilledButton(
+                            onPressed: () {
+                              if (formKey.currentState!.validate()) {
+                                final qty = int.parse(qtyController.text);
+                                final price = double.parse(priceController.text);
 
-                        if (qty < 0 || price < 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error: Quantity and Price must be 0 or greater.'), backgroundColor: Colors.red));
-                          return;
-                        }
+                                final newItem = Item(
+                                  id: 'i${DateTime.now().millisecondsSinceEpoch}',
+                                  name: nameController.text,
+                                  category: catController.text,
+                                  subcategory: subcatController.text,
+                                  totalQuantity: qty,
+                                  availableQuantity: qty,
+                                  pricePerDay: price,
+                                );
 
-                        final newItem = Item(
-                          id: 'i${DateTime.now().millisecondsSinceEpoch}',
-                          name: nameController.text.isNotEmpty ? nameController.text : 'Unknown',
-                          category: catController.text.isNotEmpty ? catController.text : 'Misc',
-                          subcategory: subcatController.text,
-                          totalQuantity: qty,
-                          availableQuantity: qty,
-                          pricePerDay: price,
-                        );
-
-                        try {
-                          dataService.addInventoryItem(currentUser, newItem);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added successfully.')));
-                          Navigator.pop(context);
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                        }
-                      },
-                      child: const Text('Add'),
-                    ),
-                  ],
+                                try {
+                                  dataService.addInventoryItem(currentUser, newItem);
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added successfully.')));
+                                  Navigator.pop(context);
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                }
+                              }
+                            },
+                            child: const Text('Add'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-              ],
+              ),
             ),
           ),
         );
@@ -242,6 +282,7 @@ class _UsersTab extends StatelessWidget {
   }
 
   void _showAddUserBottomSheet(BuildContext context, DataService dataService, User currentUser) {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
 
     showModalBottomSheet(
@@ -257,36 +298,48 @@ class _UsersTab extends StatelessWidget {
                 right: 16,
                 top: 16,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('Add New Employee', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 16),
-                  TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                      FilledButton(
-                        onPressed: () {
-                          if (nameController.text.isNotEmpty) {
-                            try {
-                              dataService.registerNewUser(currentUser, nameController.text, UserRole.employee);
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Employee added successfully.')));
-                              Navigator.pop(context);
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                            }
-                          }
-                        },
-                        child: const Text('Add'),
-                      ),
-                    ],
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text('Add New Employee', style: Theme.of(context).textTheme.titleLarge),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: nameController,
+                          decoration: const InputDecoration(labelText: 'Name *', helperText: 'Full name of the new employee.'),
+                          validator: (v) => (v == null || v.isEmpty) ? 'Please enter a name.' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                            FilledButton(
+                              onPressed: () {
+                                if (formKey.currentState!.validate()) {
+                                  try {
+                                    dataService.registerNewUser(currentUser, nameController.text, UserRole.employee);
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Employee added successfully.')));
+                                    Navigator.pop(context);
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                  }
+                                }
+                              },
+                              child: const Text('Add'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
               ),
             );
           },
@@ -361,6 +414,7 @@ class _BillsTab extends StatelessWidget {
   }
 
   void _showWalkInBottomSheet(BuildContext context, DataService dataService, User currentUser) {
+    final formKey = GlobalKey<FormState>();
     User? selectedCustomer;
     Item? selectedItem;
     DateTimeRange? selectedDateRange;
@@ -381,75 +435,107 @@ class _BillsTab extends StatelessWidget {
                 right: 16,
                 top: 16,
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('New Walk-In Ticket', style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<User>(
-                      decoration: const InputDecoration(labelText: 'Select Customer'),
-                      initialValue: selectedCustomer,
-                      items: customers.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
-                      onChanged: (val) => setState(() => selectedCustomer = val),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: SingleChildScrollView(
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text('New Walk-In Ticket', style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<User>(
+                            decoration: const InputDecoration(labelText: 'Select Customer *', helperText: 'The customer borrowing the item.'),
+                            initialValue: selectedCustomer,
+                            items: customers.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
+                            onChanged: (val) => setState(() => selectedCustomer = val),
+                            validator: (v) => v == null ? 'Please select a customer.' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<Item>(
+                            decoration: const InputDecoration(labelText: 'Select Item *', helperText: 'The item being borrowed.'),
+                            initialValue: selectedItem,
+                            items: items.map((i) => DropdownMenuItem(value: i, child: Text(i.name))).toList(),
+                            onChanged: (val) => setState(() => selectedItem = val),
+                            validator: (v) => v == null ? 'Please select an item.' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          FormField<DateTimeRange>(
+                            validator: (v) => selectedDateRange == null ? 'Please select a date range.' : null,
+                            builder: (formFieldState) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ListTile(
+                                    shape: RoundedRectangleBorder(
+                                      side: BorderSide(color: formFieldState.hasError ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.outline),
+                                      borderRadius: BorderRadius.circular(8)
+                                    ),
+                                    title: Text(selectedDateRange == null ? 'Select Dates *' : '${selectedDateRange!.start.toString().split(' ')[0]} - ${selectedDateRange!.end.toString().split(' ')[0]}'),
+                                    trailing: const Icon(Icons.date_range),
+                                    onTap: () async {
+                                      final now = DateTime.now();
+                                      final picked = await showDateRangePicker(
+                                        context: context,
+                                        firstDate: now,
+                                        lastDate: now.add(const Duration(days: 365)),
+                                        initialDateRange: selectedDateRange,
+                                      );
+                                      if (picked != null) {
+                                        setState(() {
+                                          selectedDateRange = picked;
+                                          formFieldState.didChange(picked);
+                                        });
+                                      }
+                                    },
+                                  ),
+                                  if (formFieldState.hasError)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 16, top: 8),
+                                      child: Text(
+                                        formFieldState.errorText!,
+                                        style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                              FilledButton(
+                                onPressed: () {
+                                  if (formKey.currentState!.validate() && selectedDateRange != null) {
+                                    try {
+                                      dataService.createWalkInTicket(
+                                        currentUser,
+                                        selectedCustomer!.id,
+                                        selectedItem!.id,
+                                        selectedDateRange!.start,
+                                        selectedDateRange!.end,
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ticket created & bill sent for approval.')));
+                                      Navigator.pop(context);
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                    }
+                                  }
+                                },
+                                child: const Text('Create'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<Item>(
-                      decoration: const InputDecoration(labelText: 'Select Item'),
-                      initialValue: selectedItem,
-                      items: items.map((i) => DropdownMenuItem(value: i, child: Text(i.name))).toList(),
-                      onChanged: (val) => setState(() => selectedItem = val),
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      shape: RoundedRectangleBorder(side: BorderSide(color: Theme.of(context).colorScheme.outline), borderRadius: BorderRadius.circular(8)),
-                      title: Text(selectedDateRange == null ? 'Select Dates' : '${selectedDateRange!.start.toString().split(' ')[0]} - ${selectedDateRange!.end.toString().split(' ')[0]}'),
-                      trailing: const Icon(Icons.date_range),
-                      onTap: () async {
-                        final now = DateTime.now();
-                        final picked = await showDateRangePicker(
-                          context: context,
-                          firstDate: now,
-                          lastDate: now.add(const Duration(days: 365)),
-                          initialDateRange: selectedDateRange,
-                        );
-                        if (picked != null) {
-                          setState(() => selectedDateRange = picked);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                        FilledButton(
-                          onPressed: () {
-                            if (selectedCustomer != null && selectedItem != null && selectedDateRange != null) {
-                              try {
-                                dataService.createWalkInTicket(
-                                  currentUser,
-                                  selectedCustomer!.id,
-                                  selectedItem!.id,
-                                  selectedDateRange!.start,
-                                  selectedDateRange!.end,
-                                );
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ticket created & bill sent for approval.')));
-                                Navigator.pop(context);
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                              }
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields.')));
-                            }
-                          },
-                          child: const Text('Create'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                  ),
                 ),
               ),
             );
