@@ -54,9 +54,28 @@ class DataService extends ChangeNotifier {
     if (currentUser.role != UserRole.admin) {
       throw Exception('Unauthorized: Only Admins can add users.');
     }
+    if (role == UserRole.customer) {
+      throw Exception('Unauthorized: Admins can only add Employees, not Customers.');
+    }
     final newId = 'u${users.length + 1}'; // Simple ID generation
     users.add(User(id: newId, name: name, role: role));
     notifyListeners();
+  }
+
+  User selfRegisterCustomer(String name, String contactInfo) {
+    final newId = 'u${users.length + 1}'; // Simple ID generation
+    final newUser = User(id: newId, name: name, role: UserRole.customer, contactInfo: contactInfo);
+    users.add(newUser);
+    notifyListeners();
+    return newUser;
+  }
+
+  void updateUserProfile(User currentUser, String name, String contactInfo) {
+    final index = users.indexWhere((user) => user.id == currentUser.id);
+    if (index != -1) {
+      users[index] = users[index].copyWith(name: name, contactInfo: contactInfo);
+      notifyListeners();
+    }
   }
 
   void deleteUserAccount(User currentUser, String id) {
@@ -165,6 +184,57 @@ class DataService extends ChangeNotifier {
       itemId: itemId,
       startDate: start,
       returnDate: end,
+    ));
+
+    notifyListeners();
+  }
+
+  void createWalkInTicket(User currentUser, String customerId, String itemId, DateTime start, DateTime end) {
+    if (currentUser.role != UserRole.employee) {
+      throw Exception('Unauthorized: Only Employees can create walk-in tickets.');
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final reqStart = DateTime(start.year, start.month, start.day);
+    final reqEnd = DateTime(end.year, end.month, end.day);
+
+    if (reqStart.isBefore(today)) {
+      throw Exception('Error: Start date cannot be in the past.');
+    }
+    if (reqEnd.isBefore(reqStart)) {
+      throw Exception('Error: End date cannot be before start date.');
+    }
+
+    if (!checkItemAvailability(itemId, start, end)) {
+      throw Exception('Error: Dates overlap or item not available.');
+    }
+
+    final customerExists = users.any((u) => u.id == customerId && u.role == UserRole.customer);
+    if (!customerExists) {
+      throw Exception("Error: Customer not found.");
+    }
+
+    final item = items.firstWhere((i) => i.id == itemId);
+
+    final newId = 'br${borrowRequests.length + 1}';
+    borrowRequests.add(BorrowRequest(
+      id: newId,
+      userId: customerId,
+      itemId: itemId,
+      startDate: start,
+      returnDate: end,
+    ));
+
+    int days = end.difference(start).inDays + 1;
+    double amount = days * item.pricePerDay;
+
+    final newBillId = 'b${bills.length + 1}';
+    bills.add(Bill(
+      id: newBillId,
+      customerId: customerId,
+      employeeId: currentUser.id,
+      amount: amount,
     ));
 
     notifyListeners();
