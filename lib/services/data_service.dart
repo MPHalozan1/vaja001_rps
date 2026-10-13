@@ -50,7 +50,7 @@ class DataService extends ChangeNotifier {
   }
 
   // --- User Management ---
-  void addUser(User currentUser, String name, UserRole role) {
+  void registerNewUser(User currentUser, String name, UserRole role) {
     if (currentUser.role != UserRole.admin) {
       throw Exception('Unauthorized: Only Admins can add users.');
     }
@@ -59,7 +59,7 @@ class DataService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeUser(User currentUser, String id) {
+  void deleteUserAccount(User currentUser, String id) {
     if (currentUser.role != UserRole.admin) {
       throw Exception('Unauthorized: Only Admins can remove users.');
     }
@@ -67,7 +67,7 @@ class DataService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void changeUserRole(User currentUser, String id, UserRole newRole) {
+  void updateUserRole(User currentUser, String id, UserRole newRole) {
     if (currentUser.role != UserRole.admin) {
       throw Exception('Unauthorized: Only Admins can change user roles.');
     }
@@ -80,7 +80,7 @@ class DataService extends ChangeNotifier {
   }
 
   // --- Item Management ---
-  void addItem(User currentUser, Item item) {
+  void addInventoryItem(User currentUser, Item item) {
     if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
       throw Exception('Unauthorized: Only Admins or Employees can add items.');
     }
@@ -94,7 +94,7 @@ class DataService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeItem(User currentUser, String id) {
+  void removeInventoryItem(User currentUser, String id) {
     if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
       throw Exception('Unauthorized: Only Admins or Employees can remove items.');
     }
@@ -103,7 +103,7 @@ class DataService extends ChangeNotifier {
   }
 
   // --- Reservation Logic ---
-  bool isItemAvailableForDates(String itemId, DateTime start, DateTime end) {
+  bool checkItemAvailability(String itemId, DateTime start, DateTime end) {
     // Normalization to start of day for comparison
     final reqStart = DateTime(start.year, start.month, start.day);
     final reqEnd = DateTime(end.year, end.month, end.day);
@@ -131,7 +131,7 @@ class DataService extends ChangeNotifier {
     return borrowRequests.where((req) => req.itemId == itemId).toList();
   }
 
-  void addBorrowRequest(User currentUser, String itemId, DateTime start, DateTime end) {
+  void processItemReservation(User currentUser, String itemId, DateTime start, DateTime end) {
     if (currentUser.role != UserRole.customer) {
       throw Exception('Unauthorized: Only Customers can reserve items.');
     }
@@ -148,7 +148,7 @@ class DataService extends ChangeNotifier {
       throw Exception('Error: End date cannot be before start date.');
     }
 
-    if (!isItemAvailableForDates(itemId, start, end)) {
+    if (!checkItemAvailability(itemId, start, end)) {
       throw Exception('Error: Dates overlap or item not available.');
     }
 
@@ -170,25 +170,10 @@ class DataService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void approveBill(User currentUser, String billId) {
+  // --- Bill Management ---
+  String approveEmployeeBill(User currentUser, String billId) {
     if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
       throw Exception('Unauthorized: Only Admins or Employees can approve bills.');
-    }
-
-    final bill = bills.firstWhere((b) => b.id == billId, orElse: () => throw Exception('Bill not found.'));
-
-    if (bill.status != BillStatus.pendingAdminApproval) {
-      throw Exception('Error: Bill is not pending approval.');
-    }
-
-    bill.status = BillStatus.approved;
-    notifyListeners();
-  }
-
-  // --- Bill Management ---
-  void approveBill(User currentUser, String billId) {
-    if (currentUser.role != UserRole.admin) {
-      throw Exception('Unauthorized: Only Admins can approve bills.');
     }
 
     final index = bills.indexWhere((b) => b.id == billId);
@@ -196,11 +181,12 @@ class DataService extends ChangeNotifier {
       if (bills[index].status == BillStatus.pendingAdminApproval) {
         bills[index].status = BillStatus.approved;
         notifyListeners();
+        return 'Bill approved successfully.';
       } else {
         throw Exception('Bill is not pending approval.');
       }
-    } else {
-      throw Exception('Bill not found.');
     }
+
+    throw Exception('Bill not found.');
   }
 }

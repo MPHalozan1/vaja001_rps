@@ -40,60 +40,6 @@ class ManagementDashboardScreen extends StatelessWidget {
   }
 }
 
-class _BillsTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final dataService = Provider.of<DataService>(context);
-    final bills = dataService.bills;
-
-    final dashboard = context.findAncestorWidgetOfExactType<ManagementDashboardScreen>();
-    final currentUser = dashboard!.currentUser;
-
-    return Column(
-      children: [
-        Expanded(
-          child: bills.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.receipt_long, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No bills found.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: bills.length,
-                  itemBuilder: (context, index) {
-                    final bill = bills[index];
-                    return ListTile(
-                      title: Text('Bill \$${bill.amount.toStringAsFixed(2)}'),
-                      subtitle: Text('Status: ${bill.status.name}'),
-                      trailing: bill.status == BillStatus.pendingAdminApproval
-                          ? IconButton(
-                              icon: const Icon(Icons.check, color: Colors.green),
-                              onPressed: () {
-                                try {
-                                  dataService.approveBill(currentUser, bill.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill approved')));
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                                }
-                              },
-                            )
-                          : null,
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-}
 
 class _ItemsTab extends StatelessWidget {
   final User currentUser;
@@ -141,7 +87,7 @@ class _ItemsTab extends StatelessWidget {
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () {
                           try {
-                            dataService.removeItem(currentUser, item.id);
+                          dataService.removeInventoryItem(currentUser, item.id);
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item removed successfully.')));
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
@@ -212,7 +158,7 @@ class _ItemsTab extends StatelessWidget {
                         );
 
                         try {
-                          dataService.addItem(currentUser, newItem);
+                          dataService.addInventoryItem(currentUser, newItem);
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added successfully.')));
                           Navigator.pop(context);
                         } catch (e) {
@@ -286,7 +232,7 @@ class _UsersTab extends StatelessWidget {
                         onChanged: (newRole) {
                           if (newRole != null) {
                             try {
-                              dataService.changeUserRole(currentUser, user.id, newRole);
+                              dataService.updateUserRole(currentUser, user.id, newRole);
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User role updated successfully.')));
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
@@ -298,7 +244,7 @@ class _UsersTab extends StatelessWidget {
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () {
                           try {
-                            dataService.removeUser(currentUser, user.id);
+                            dataService.deleteUserAccount(currentUser, user.id);
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User removed successfully.')));
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
@@ -357,7 +303,7 @@ class _UsersTab extends StatelessWidget {
                         onPressed: () {
                           if (nameController.text.isNotEmpty) {
                             try {
-                              dataService.addUser(currentUser, nameController.text, selectedRole);
+                              dataService.registerNewUser(currentUser, nameController.text, selectedRole);
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User added successfully.')));
                               Navigator.pop(context);
                             } catch (e) {
@@ -398,11 +344,11 @@ class _BillsTab extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.receipt_long_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                      Icon(Icons.receipt_long_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
                         'No bills found.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
@@ -418,8 +364,8 @@ class _BillsTab extends StatelessWidget {
                           ? FilledButton.tonal(
                               onPressed: () {
                                 try {
-                                  dataService.approveBill(currentUser, bill.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill approved')));
+                                  final msg = dataService.approveEmployeeBill(currentUser, bill.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
                                 }

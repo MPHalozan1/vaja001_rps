@@ -107,7 +107,7 @@ class _BorrowFormScreenState extends State<BorrowFormScreen> {
               FilledButton(
                 onPressed: () {
                   try {
-                    dataService.addBorrowRequest(widget.currentUser, widget.item.id, _startDate!, _endDate!);
+                    dataService.processItemReservation(widget.currentUser, widget.item.id, _startDate!, _endDate!);
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item successfully reserved')));
                     Navigator.pop(context);
                   } catch (e) {
