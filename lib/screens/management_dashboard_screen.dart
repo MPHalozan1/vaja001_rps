@@ -187,7 +187,8 @@ class _UsersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dataService = Provider.of<DataService>(context);
-    final users = dataService.users;
+    // Admins manage Employees now (not customers, but they can see them maybe. Actually, plan says "manage Employees")
+    final employees = dataService.users.where((u) => u.role == UserRole.employee).toList();
 
     return Column(
       children: [
@@ -195,12 +196,12 @@ class _UsersTab extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton.icon(
             icon: const Icon(Icons.person_add),
-            label: const Text('Add New User'),
+            label: const Text('Add New Employee'),
             onPressed: () => _showAddUserBottomSheet(context, dataService, currentUser),
           ),
         ),
         Expanded(
-          child: users.isEmpty
+          child: employees.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -208,44 +209,25 @@ class _UsersTab extends StatelessWidget {
                       Icon(Icons.people_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
-                        'No users found.',
+                        'No employees found.',
                         style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
                 )
               : ListView.builder(
-                  itemCount: users.length,
+                  itemCount: employees.length,
                   itemBuilder: (context, index) {
-                    final user = users[index];
+                    final user = employees[index];
                     return ListTile(
                       title: Text(user.name),
-                      subtitle: Text(user.role.name),
-                      trailing: DropdownButton<UserRole>(
-                        value: user.role,
-                        items: UserRole.values.map((role) {
-                          return DropdownMenuItem(
-                            value: role,
-                            child: Text(role.name),
-                          );
-                        }).toList(),
-                        onChanged: (newRole) {
-                          if (newRole != null) {
-                            try {
-                              dataService.updateUserRole(currentUser, user.id, newRole);
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User role updated successfully.')));
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                            }
-                          }
-                        },
-                      ),
+                      subtitle: Text('Employee ID: ${user.id}'),
                       leading: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () {
                           try {
                             dataService.deleteUserAccount(currentUser, user.id);
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User removed successfully.')));
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Employee removed successfully.')));
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
                           }
@@ -261,7 +243,6 @@ class _UsersTab extends StatelessWidget {
 
   void _showAddUserBottomSheet(BuildContext context, DataService dataService, User currentUser) {
     final nameController = TextEditingController();
-    UserRole selectedRole = UserRole.customer;
 
     showModalBottomSheet(
       context: context,
@@ -280,20 +261,9 @@ class _UsersTab extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Add New User', style: Theme.of(context).textTheme.titleLarge),
+                  Text('Add New Employee', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 16),
                   TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-                  const SizedBox(height: 16),
-                  DropdownButton<UserRole>(
-                    isExpanded: true,
-                    value: selectedRole,
-                    items: UserRole.values.map((role) {
-                      return DropdownMenuItem(value: role, child: Text(role.name));
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => selectedRole = val);
-                    },
-                  ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -303,8 +273,8 @@ class _UsersTab extends StatelessWidget {
                         onPressed: () {
                           if (nameController.text.isNotEmpty) {
                             try {
-                              dataService.registerNewUser(currentUser, nameController.text, selectedRole);
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User added successfully.')));
+                              dataService.registerNewUser(currentUser, nameController.text, UserRole.employee);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Employee added successfully.')));
                               Navigator.pop(context);
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
@@ -338,6 +308,15 @@ class _BillsTab extends StatelessWidget {
 
     return Column(
       children: [
+        if (currentUser.role == UserRole.employee)
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.point_of_sale),
+              label: const Text('Create Walk-In Ticket'),
+              onPressed: () => _showWalkInBottomSheet(context, dataService, currentUser),
+            ),
+          ),
         Expanded(
           child: bills.isEmpty
               ? Center(
@@ -378,6 +357,105 @@ class _BillsTab extends StatelessWidget {
                 ),
         ),
       ],
+    );
+  }
+
+  void _showWalkInBottomSheet(BuildContext context, DataService dataService, User currentUser) {
+    User? selectedCustomer;
+    Item? selectedItem;
+    DateTimeRange? selectedDateRange;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final customers = dataService.users.where((u) => u.role == UserRole.customer).toList();
+            final items = dataService.items;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('New Walk-In Ticket', style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<User>(
+                      decoration: const InputDecoration(labelText: 'Select Customer'),
+                      initialValue: selectedCustomer,
+                      items: customers.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
+                      onChanged: (val) => setState(() => selectedCustomer = val),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<Item>(
+                      decoration: const InputDecoration(labelText: 'Select Item'),
+                      initialValue: selectedItem,
+                      items: items.map((i) => DropdownMenuItem(value: i, child: Text(i.name))).toList(),
+                      onChanged: (val) => setState(() => selectedItem = val),
+                    ),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      shape: RoundedRectangleBorder(side: BorderSide(color: Theme.of(context).colorScheme.outline), borderRadius: BorderRadius.circular(8)),
+                      title: Text(selectedDateRange == null ? 'Select Dates' : '${selectedDateRange!.start.toString().split(' ')[0]} - ${selectedDateRange!.end.toString().split(' ')[0]}'),
+                      trailing: const Icon(Icons.date_range),
+                      onTap: () async {
+                        final now = DateTime.now();
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: now,
+                          lastDate: now.add(const Duration(days: 365)),
+                          initialDateRange: selectedDateRange,
+                        );
+                        if (picked != null) {
+                          setState(() => selectedDateRange = picked);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                        FilledButton(
+                          onPressed: () {
+                            if (selectedCustomer != null && selectedItem != null && selectedDateRange != null) {
+                              try {
+                                dataService.createWalkInTicket(
+                                  currentUser,
+                                  selectedCustomer!.id,
+                                  selectedItem!.id,
+                                  selectedDateRange!.start,
+                                  selectedDateRange!.end,
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ticket created & bill sent for approval.')));
+                                Navigator.pop(context);
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields.')));
+                            }
+                          },
+                          child: const Text('Create'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

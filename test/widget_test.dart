@@ -22,8 +22,7 @@ void main() {
     );
 
     // Verify that we are on the Sign In screen.
-    expect(find.text('Item Borrowing System'), findsOneWidget);
-    expect(find.text('Please select a user to log in:'), findsOneWidget);
-    expect(find.text('Select a user'), findsOneWidget);
+    expect(find.text('NEON RENTALS'), findsOneWidget);
+    expect(find.text('SYSTEM LOGIN'), findsOneWidget);
   });
 }

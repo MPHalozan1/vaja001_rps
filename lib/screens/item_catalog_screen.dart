@@ -1,9 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
 import '../models/user.dart';
-import 'borrow_form_screen.dart';
-import 'package:intl/intl.dart';
+import 'product_detail_screen.dart';
 
 class ItemCatalogScreen extends StatefulWidget {
   final User currentUser;
@@ -20,14 +20,10 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
 
   IconData _getIconForCategory(String category) {
     switch (category) {
-      case 'IT':
-        return Icons.computer;
-      case 'Household':
-        return Icons.home;
-      case 'Audio/Video':
-        return Icons.videocam;
-      default:
-        return Icons.inventory;
+      case 'IT': return Icons.computer;
+      case 'Household': return Icons.home;
+      case 'Audio/Video': return Icons.videocam;
+      default: return Icons.inventory_2;
     }
   }
 
@@ -35,8 +31,6 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
   Widget build(BuildContext context) {
     final dataService = Provider.of<DataService>(context);
     final allItems = dataService.items;
-
-    // Get unique categories for the tabs
     final categories = ['All', ...allItems.map((e) => e.category).toSet()];
 
     final filteredItems = allItems.where((item) {
@@ -48,24 +42,31 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Catalog')),
+      appBar: AppBar(
+        title: const Text('CATALOG', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Search & Filters
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SearchBar(
-              hintText: 'Search items by name...',
+              hintText: 'Search items...',
               leading: const Icon(Icons.search),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
+              backgroundColor: WidgetStatePropertyAll(
+                Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+              ),
+              onChanged: (value) => setState(() => _searchQuery = value),
             ),
           ),
 
-          // Category tabs
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -77,150 +78,148 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
                   child: FilterChip(
                     label: Text(category),
                     selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
-                    avatar: category != 'All' ? Icon(_getIconForCategory(category), size: 18) : null,
+                    selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                    checkmarkColor: Theme.of(context).colorScheme.primary,
+                    side: BorderSide(
+                      color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.withValues(alpha: 0.3),
+                    ),
+                    onSelected: (selected) => setState(() => _selectedCategory = category),
                   ),
                 );
               }).toList(),
             ),
           ),
-
           const SizedBox(height: 16),
 
+          // Product Grid
           Expanded(
             child: filteredItems.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                        Icon(Icons.warning_amber_rounded, size: 64, color: Theme.of(context).colorScheme.secondary),
                         const SizedBox(height: 16),
-                        Text(
-                          'No items found.',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                        const Text('NO ITEMS FOUND', style: TextStyle(letterSpacing: 2)),
                       ],
                     ),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                : GridView.builder(
+                    padding: const EdgeInsets.all(16.0),
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 300,
+                      childAspectRatio: 0.75,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
                     itemCount: filteredItems.length,
                     itemBuilder: (context, index) {
                       final item = filteredItems[index];
-                      final reservations = dataService.getReservationsForItem(item.id);
-                      final isAvailable = dataService.checkItemAvailability(item.id, DateTime.now(), DateTime.now()); // Quick check, simplified
+                      final isAvailable = dataService.checkItemAvailability(item.id, DateTime.now(), DateTime.now());
 
                       return Card(
-                        margin: const EdgeInsets.only(bottom: 16.0),
                         clipBehavior: Clip.antiAlias,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 120,
-                              height: 160,
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              child: Center(
-                                child: Icon(
-                                  _getIconForCategory(item.category),
-                                  size: 64,
-                                  color: Theme.of(context).colorScheme.primary,
+                        child: InkWell(
+                          onTap: () {
+                            if (widget.currentUser.role == UserRole.customer) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProductDetailScreen(
+                                    currentUser: widget.currentUser,
+                                    item: item,
+                                  ),
                                 ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Only customers can reserve items from Catalog.')),
+                              );
+                            }
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                  child: Stack(
+                                    children: [
+                                      Center(
+                                        child: Hero(
+                                          tag: 'item-${item.id}',
+                                          child: Icon(
+                                            _getIconForCategory(item.category),
+                                            size: 64,
+                                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(alpha: 0.7),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: Theme.of(context).colorScheme.primary),
+                                          ),
                                           child: Text(
-                                            item.name,
-                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                        Text(
-                                          '\$${item.pricePerDay}/day',
-                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                color: Theme.of(context).colorScheme.primary,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${item.category} > ${item.subcategory}',
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 12),
-
-                                    // Availability status
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.circle,
-                                          size: 12,
-                                          color: isAvailable ? Colors.green : Colors.red,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          isAvailable ? 'Available' : 'Reserved',
-                                          style: TextStyle(
-                                            color: isAvailable ? Colors.green : Colors.red,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                    if (reservations.isNotEmpty) ...[
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Unavailable dates:',
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-                                      ),
-                                      ...reservations.map((r) => Text(
-                                            '- ${DateFormat('MMM d').format(r.startDate)} to ${DateFormat('MMM d').format(r.returnDate)}',
-                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.red.shade700),
-                                          )),
-                                    ],
-
-                                    const SizedBox(height: 12),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: FilledButton.tonal(
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => BorrowFormScreen(currentUser: widget.currentUser, item: item),
+                                            '\$${item.pricePerDay}',
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
                                             ),
-                                          );
-                                        },
-                                        child: const Text('Reserve'),
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                              Expanded(
+                                flex: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        item.name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.circle,
+                                            size: 10,
+                                            color: isAvailable ? Colors.greenAccent : Colors.redAccent,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            isAvailable ? 'AVAILABLE' : 'RESERVED',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              letterSpacing: 1,
+                                              color: isAvailable ? Colors.greenAccent : Colors.redAccent,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },

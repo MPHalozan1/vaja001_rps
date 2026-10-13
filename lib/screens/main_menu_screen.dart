@@ -1,61 +1,141 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
-import 'management_dashboard_screen.dart';
 import 'item_catalog_screen.dart';
+import 'customer_dashboard_screen.dart';
+import 'management_dashboard_screen.dart';
 
-class MainMenuScreen extends StatelessWidget {
+class MainMenuScreen extends StatefulWidget {
   final User user;
 
   const MainMenuScreen({super.key, required this.user});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Main Menu - ${user.role.name}')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Welcome, ${user.name}'),
-            const SizedBox(height: 20),
-            if (user.role == UserRole.customer) ...[
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ItemCatalogScreen(currentUser: user),
-                    ),
-                  );
-                },
-                child: const Text('Item Catalog'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/customer_dashboard'),
-                child: const Text('My Dashboard'),
-              ),
-            ],
-            if (user.role == UserRole.admin || user.role == UserRole.employee) ...[
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ManagementDashboardScreen(currentUser: user),
-                    ),
-                  );
-                },
-                child: const Text('Management Dashboard'),
-              ),
-            ],
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pushReplacementNamed(context, '/'),
-              child: const Text('Logout'),
-            ),
-          ],
+  State<MainMenuScreen> createState() => _MainMenuScreenState();
+}
+
+class _MainMenuScreenState extends State<MainMenuScreen> {
+  int _selectedIndex = 0;
+
+  List<Widget> _getDestinations() {
+    if (widget.user.role == UserRole.customer) {
+      return [
+        ItemCatalogScreen(currentUser: widget.user),
+        CustomerDashboardScreen(currentUser: widget.user),
+      ];
+    } else {
+      return [
+        ManagementDashboardScreen(currentUser: widget.user),
+        ItemCatalogScreen(currentUser: widget.user),
+      ];
+    }
+  }
+
+  List<NavigationDestination> _getNavDestinations() {
+    if (widget.user.role == UserRole.customer) {
+      return const [
+        NavigationDestination(
+          icon: Icon(Icons.store),
+          label: 'Catalog',
         ),
+        NavigationDestination(
+          icon: Icon(Icons.person),
+          label: 'My Dashboard',
+        ),
+      ];
+    } else {
+      return const [
+        NavigationDestination(
+          icon: Icon(Icons.dashboard),
+          label: 'Management',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.store),
+          label: 'Catalog',
+        ),
+      ];
+    }
+  }
+
+  List<NavigationRailDestination> _getRailDestinations() {
+    if (widget.user.role == UserRole.customer) {
+      return const [
+        NavigationRailDestination(
+          icon: Icon(Icons.store),
+          label: Text('Catalog'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.person),
+          label: Text('My Dashboard'),
+        ),
+      ];
+    } else {
+      return const [
+        NavigationRailDestination(
+          icon: Icon(Icons.dashboard),
+          label: Text('Management'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.store),
+          label: Text('Catalog'),
+        ),
+      ];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isWide = MediaQuery.of(context).size.width >= 600;
+
+    return Scaffold(
+      body: Row(
+        children: [
+          if (isWide)
+            NavigationRail(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (int index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+              labelType: NavigationRailLabelType.all,
+              destinations: _getRailDestinations(),
+              trailing: Expanded(
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 24.0),
+                    child: IconButton(
+                      icon: const Icon(Icons.logout),
+                      onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (isWide) const VerticalDivider(thickness: 1, width: 1),
+          Expanded(
+            child: _getDestinations()[_selectedIndex],
+          ),
+        ],
       ),
+      bottomNavigationBar: isWide
+          ? null
+          : NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (int index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+              destinations: _getNavDestinations(),
+            ),
+      floatingActionButton: isWide
+          ? null
+          : FloatingActionButton(
+              mini: true,
+              child: const Icon(Icons.logout),
+              onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+            ),
     );
   }
 }
