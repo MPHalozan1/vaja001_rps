@@ -155,7 +155,7 @@ class DataService extends ChangeNotifier {
     // Check if user is actually in system
     final userExists = users.any((u) => u.id == currentUser.id);
     if (!userExists) {
-      return 'Error: Unauthorized user.';
+      throw Exception("Error: Unauthorized user.");
     }
 
     final newId = 'br${borrowRequests.length + 1}';
