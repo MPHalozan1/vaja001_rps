@@ -1,3 +1,4 @@
+import 'billing_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import 'item_catalog_screen.dart';
@@ -26,6 +27,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       return [
         ManagementDashboardScreen(currentUser: widget.user),
         ItemCatalogScreen(currentUser: widget.user),
+        BillingDashboardScreen(currentUser: widget.user),
       ];
     }
   }
@@ -52,6 +54,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           icon: Icon(Icons.store),
           label: 'Catalog',
         ),
+        NavigationDestination(
+          icon: Icon(Icons.receipt_long),
+          label: 'Billing',
+        ),
       ];
     }
   }
@@ -77,6 +83,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         NavigationRailDestination(
           icon: Icon(Icons.store),
           label: Text('Catalog'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.receipt_long),
+          label: Text('Billing'),
         ),
       ];
     }

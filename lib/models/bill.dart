@@ -6,6 +6,7 @@ class Bill {
   final String employeeId;
   final double amount;
   BillStatus status;
+  final String? borrowRequestId;
 
   Bill({
     required this.id,
@@ -13,5 +14,6 @@ class Bill {
     required this.employeeId,
     required this.amount,
     this.status = BillStatus.pendingAdminApproval,
+    this.borrowRequestId,
   });
 }

@@ -1,3 +1,4 @@
+import 'hover_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
@@ -160,9 +161,10 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
                                     final item = filteredItems[index];
                                     final isAvailable = dataService.checkItemAvailability(item.id, DateTime.now(), DateTime.now());
 
-                                    return Card(
-                                      clipBehavior: Clip.antiAlias,
-                                      child: InkWell(
+                                    return HoverScale(
+                                      child: Card(
+                                        clipBehavior: Clip.antiAlias,
+                                        child: InkWell(
                                         onTap: () {
                                           if (widget.currentUser.role == UserRole.customer) {
                                             Navigator.push(
@@ -263,7 +265,7 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
                                           ],
                                         ),
                                       ),
-                                    );
+                                    ));
                                   },
                                 ),
                               ),

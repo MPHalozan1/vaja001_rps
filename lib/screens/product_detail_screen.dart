@@ -21,6 +21,8 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   DateTimeRange? _selectedDateRange;
+  final TextEditingController _locationController = TextEditingController();
+  bool _liabilityAccepted = false;
 
   IconData _getIconForCategory(String category) {
     switch (category) {
@@ -44,11 +46,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
 
     try {
+      if (!_liabilityAccepted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You must accept the liability disclaimer to proceed.')),
+        );
+        return;
+      }
+      if (_locationController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter intended location of use.')),
+        );
+        return;
+      }
       dataService.processItemReservation(
         widget.currentUser,
         widget.item.id,
         _selectedDateRange!.start,
         _selectedDateRange!.end,
+        location: _locationController.text.trim(),
       );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Reservation successful!')),

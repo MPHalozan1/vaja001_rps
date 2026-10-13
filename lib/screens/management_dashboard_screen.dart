@@ -1,3 +1,4 @@
+import '../models/borrow_request.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/user.dart';
@@ -13,7 +14,7 @@ class ManagementDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Management Dashboard'),
@@ -21,7 +22,8 @@ class ManagementDashboardScreen extends StatelessWidget {
             tabs: [
               Tab(icon: Icon(Icons.inventory), text: 'Items'),
               Tab(icon: Icon(Icons.people), text: 'Users'),
-              Tab(icon: Icon(Icons.receipt_long), text: 'Bills'),
+              Tab(icon: Icon(Icons.calendar_today), text: 'Rentals'),
+              Tab(icon: Icon(Icons.bar_chart), text: 'Analytics'),
             ],
           ),
         ),
@@ -32,7 +34,8 @@ class ManagementDashboardScreen extends StatelessWidget {
               _UsersTab(currentUser: currentUser)
             else
               const Center(child: Text('Only Admins can manage users.')),
-            _BillsTab(currentUser: currentUser),
+            _RentalsTab(currentUser: currentUser),
+            _AnalyticsTab(currentUser: currentUser),
           ],
         ),
       ),
@@ -51,12 +54,15 @@ class _ItemsTab extends StatelessWidget {
     final dataService = Provider.of<DataService>(context);
     final items = dataService.items;
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.add),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.add),
             label: const Text('Add New Item'),
             onPressed: () => _showAddItemBottomSheet(context, dataService, currentUser),
           ),
@@ -99,7 +105,7 @@ class _ItemsTab extends StatelessWidget {
                 ),
         ),
       ],
-    );
+    )));
   }
 
   void _showAddItemBottomSheet(BuildContext context, DataService dataService, User currentUser) {
@@ -139,10 +145,33 @@ class _ItemsTab extends StatelessWidget {
                         validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: catController,
-                        decoration: const InputDecoration(labelText: 'Category *', helperText: 'e.g., IT & Computers'),
-                        validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                      Autocomplete<String>(
+                        optionsBuilder: (TextEditingValue textEditingValue) {
+                          if (textEditingValue.text.isEmpty) {
+                            return dataService.categories;
+                          }
+                          return dataService.categories.where((String option) {
+                            return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                          });
+                        },
+                        onSelected: (String selection) {
+                          catController.text = selection;
+                        },
+                        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                          controller.addListener(() {
+                            catController.text = controller.text;
+                          });
+                          return TextFormField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            onEditingComplete: onEditingComplete,
+                            decoration: const InputDecoration(
+                              labelText: 'Category *',
+                              helperText: 'Select or type a new category',
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                          );
+                        },
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -194,6 +223,7 @@ class _ItemsTab extends StatelessWidget {
                                 );
 
                                 try {
+                                  dataService.requestOrAddCategory(currentUser, catController.text);
                                   dataService.addInventoryItem(currentUser, newItem);
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added successfully.')));
                                   Navigator.pop(context);
@@ -227,21 +257,50 @@ class _UsersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dataService = Provider.of<DataService>(context);
-    // Admins manage Employees now (not customers, but they can see them maybe. Actually, plan says "manage Employees")
-    final employees = dataService.users.where((u) => u.role == UserRole.employee).toList();
+    // Admins manage users
+    final usersList = dataService.users.where((u) => u.role != UserRole.admin).toList();
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.person_add),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Column(
+          children: [
+            if (dataService.pendingCategories.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Pending Categories', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: dataService.pendingCategories.map((cat) => Chip(
+                        label: Text(cat),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () => dataService.rejectCategory(currentUser, cat),
+                        avatar: IconButton(
+                          icon: const Icon(Icons.check, size: 16),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => dataService.approveCategory(currentUser, cat),
+                        ),
+                      )).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.person_add),
             label: const Text('Add New Employee'),
             onPressed: () => _showAddUserBottomSheet(context, dataService, currentUser),
           ),
         ),
         Expanded(
-          child: employees.isEmpty
+          child: usersList.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -249,36 +308,66 @@ class _UsersTab extends StatelessWidget {
                       Icon(Icons.people_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
-                        'No employees found.',
+                        'No users found.',
                         style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
                 )
               : ListView.builder(
-                  itemCount: employees.length,
+                  itemCount: usersList.length,
                   itemBuilder: (context, index) {
-                    final user = employees[index];
+                    final user = usersList[index];
                     return ListTile(
-                      title: Text(user.name),
-                      subtitle: Text('Employee ID: ${user.id}'),
-                      leading: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          try {
-                            dataService.deleteUserAccount(currentUser, user.id);
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Employee removed successfully.')));
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                          }
-                        },
+                      title: Row(
+                        children: [
+                          Text(user.name),
+                          if (user.strikes > 0) ...[
+                            const SizedBox(width: 8),
+                            Icon(Icons.warning, color: user.strikes >= 3 ? Colors.red : Colors.orange, size: 16),
+                            const SizedBox(width: 4),
+                            Text('${user.strikes} Strikes', style: TextStyle(color: user.strikes >= 3 ? Colors.red : Colors.orange, fontSize: 12)),
+                          ],
+                          if (user.isSuspended) ...[
+                            const SizedBox(width: 8),
+                            const Chip(label: Text('SUSPENDED'), backgroundColor: Colors.red, labelStyle: TextStyle(color: Colors.white, fontSize: 10)),
+                          ]
+                        ],
+                      ),
+                      subtitle: Text('${user.role.name.toUpperCase()} ID: ${user.id}'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (user.role == UserRole.customer)
+                            TextButton(
+                              onPressed: () {
+                                try {
+                                  dataService.toggleUserSuspension(currentUser, user.id);
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                }
+                              },
+                              child: Text(user.isSuspended ? 'Unsuspend' : 'Suspend'),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              try {
+                                dataService.deleteUserAccount(currentUser, user.id);
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User removed successfully.')));
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                              }
+                            },
+                          ),
+                        ],
                       ),
                     );
                   },
                 ),
         ),
       ],
-    );
+    )));
   }
 
   void _showAddUserBottomSheet(BuildContext context, DataService dataService, User currentUser) {
@@ -349,67 +438,149 @@ class _UsersTab extends StatelessWidget {
   }
 }
 
-class _BillsTab extends StatelessWidget {
+class _RentalsTab extends StatefulWidget {
   final User currentUser;
+  const _RentalsTab({required this.currentUser});
 
-  const _BillsTab({required this.currentUser});
+  @override
+  State<_RentalsTab> createState() => _RentalsTabState();
+}
 
+class _RentalsTabState extends State<_RentalsTab> {
   @override
   Widget build(BuildContext context) {
     final dataService = Provider.of<DataService>(context);
-    final bills = dataService.bills;
+    final rentals = dataService.borrowRequests.where((r) => !r.isReturned).toList();
 
-    return Column(
-      children: [
-        if (currentUser.role == UserRole.employee)
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.point_of_sale),
-              label: const Text('Create Walk-In Ticket'),
-              onPressed: () => _showWalkInBottomSheet(context, dataService, currentUser),
-            ),
-          ),
-        Expanded(
-          child: bills.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.receipt_long_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No bills found.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: bills.length,
-                  itemBuilder: (context, index) {
-                    final bill = bills[index];
-                    return ListTile(
-                      title: Text('Bill ID: ${bill.id} - \$${bill.amount.toStringAsFixed(2)}'),
-                      subtitle: Text('Status: ${bill.status.name}'),
-                      trailing: bill.status == BillStatus.pendingAdminApproval
-                          ? FilledButton.tonal(
-                              onPressed: () {
-                                try {
-                                  final msg = dataService.approveEmployeeBill(currentUser, bill.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                                }
-                              },
-                              child: const Text('Approve'),
-                            )
-                          : null,
-                    );
-                  },
+    // Sort so overdue are at the top
+    rentals.sort((a, b) {
+      final aOverdue = DateTime.now().isAfter(a.returnDate);
+      final bOverdue = DateTime.now().isAfter(b.returnDate);
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      return a.returnDate.compareTo(b.returnDate);
+    });
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Column(
+          children: [
+            if (widget.currentUser.role == UserRole.employee)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.point_of_sale),
+                  label: const Text('Create Walk-In Ticket'),
+                  onPressed: () => _showWalkInBottomSheet(context, dataService, widget.currentUser),
                 ),
+              ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: rentals.length,
+                itemBuilder: (context, index) {
+                  final req = rentals[index];
+                  String customerName = 'Unknown';
+                  try { customerName = dataService.users.firstWhere((u) => u.id == req.userId).name; } catch (_) {}
+                  String itemName = 'Unknown';
+                  try { itemName = dataService.items.firstWhere((i) => i.id == req.itemId).name; } catch (_) {}
+
+                  final isOverdue = DateTime.now().isAfter(req.returnDate);
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    color: isOverdue ? Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.3) : null,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (isOverdue)
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.error,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text('OVERDUE (ZAMUDA)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                          Text('Rental ID: ${req.id}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Customer: $customerName'),
+                          Text('Item: $itemName'),
+                          Text('Location: ${req.location}'),
+                          Text('Return Date: ${req.returnDate.toString().split(' ')[0]}'),
+                          const SizedBox(height: 16),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: FilledButton.tonal(
+                              onPressed: () => _showReturnDialog(context, dataService, req),
+                              child: const Text('Process Return'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  void _showReturnDialog(BuildContext context, DataService dataService, BorrowRequest req) {
+    String selectedCondition = 'Good/Brezhibno';
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Process Return'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Select the condition of the item upon return:'),
+                  const SizedBox(height: 16),
+                  RadioListTile<String>(
+                    title: const Text('Good / Brezhibno'),
+                    value: 'Good/Brezhibno',
+                    groupValue: selectedCondition,
+                    onChanged: (val) => setState(() => selectedCondition = val!),
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Damaged / Poškodovano'),
+                    value: 'Damaged/Poškodovano',
+                    groupValue: selectedCondition,
+                    onChanged: (val) => setState(() => selectedCondition = val!),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    try {
+                      dataService.processReturn(widget.currentUser, req.id, selectedCondition == 'Damaged/Poškodovano');
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Return processed.')));
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                    }
+                  },
+                  child: const Text('Confirm'),
+                ),
+              ],
+            );
+          }
+        );
+      }
     );
   }
 
@@ -418,6 +589,7 @@ class _BillsTab extends StatelessWidget {
     User? selectedCustomer;
     Item? selectedItem;
     DateTimeRange? selectedDateRange;
+    final locationController = TextEditingController(text: 'Skladišče');
 
     showModalBottomSheet(
       context: context,
@@ -504,6 +676,12 @@ class _BillsTab extends StatelessWidget {
                               );
                             },
                           ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: locationController,
+                            decoration: const InputDecoration(labelText: 'Intended Location of Use *', helperText: 'Where will you be using this item?'),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Please enter a location.' : null,
+                          ),
                           const SizedBox(height: 24),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
@@ -519,6 +697,7 @@ class _BillsTab extends StatelessWidget {
                                         selectedItem!.id,
                                         selectedDateRange!.start,
                                         selectedDateRange!.end,
+                                        location: locationController.text.trim(),
                                       );
                                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ticket created & bill sent for approval.')));
                                       Navigator.pop(context);
@@ -542,6 +721,97 @@ class _BillsTab extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _AnalyticsTab extends StatelessWidget {
+  final User currentUser;
+  const _AnalyticsTab({required this.currentUser});
+
+  @override
+  Widget build(BuildContext context) {
+    if (currentUser.role != UserRole.admin) {
+      return const Center(child: Text('Only Admins can view analytics.'));
+    }
+
+    final dataService = Provider.of<DataService>(context);
+    final items = dataService.items;
+
+    // Calculate ROI
+    // Map item id -> revenue
+    Map<String, double> itemRevenue = {};
+    for (var bill in dataService.bills) {
+      if (bill.status == BillStatus.paid && bill.borrowRequestId != null) {
+        try {
+          var req = dataService.borrowRequests.firstWhere((r) => r.id == bill.borrowRequestId);
+          itemRevenue[req.itemId] = (itemRevenue[req.itemId] ?? 0) + bill.amount;
+        } catch (_) {}
+      }
+    }
+
+    // Calculate rental counts
+    Map<String, int> itemRentalCounts = {};
+    for (var req in dataService.borrowRequests) {
+      itemRentalCounts[req.itemId] = (itemRentalCounts[req.itemId] ?? 0) + 1;
+    }
+
+    var itemsSortedByROI = List<Item>.from(items);
+    itemsSortedByROI.sort((a, b) {
+      double roiA = (itemRevenue[a.id] ?? 0) / (a.purchaseCost > 0 ? a.purchaseCost : 1);
+      double roiB = (itemRevenue[b.id] ?? 0) / (b.purchaseCost > 0 ? b.purchaseCost : 1);
+      return roiB.compareTo(roiA);
+    });
+
+    var itemsSortedByPopularity = List<Item>.from(items);
+    itemsSortedByPopularity.sort((a, b) {
+      int countA = itemRentalCounts[a.id] ?? 0;
+      int countB = itemRentalCounts[b.id] ?? 0;
+      return countB.compareTo(countA);
+    });
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('BUSINESS ANALYTICS', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              Text('Return on Investment (ROI)', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ...itemsSortedByROI.take(5).map((item) {
+                double revenue = itemRevenue[item.id] ?? 0;
+                double cost = item.purchaseCost > 0 ? item.purchaseCost : 1;
+                double roi = (revenue / cost) * 100;
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.attach_money),
+                    title: Text(item.name),
+                    subtitle: Text('Revenue: \$${revenue.toStringAsFixed(2)} / Cost: \$${item.purchaseCost.toStringAsFixed(2)}'),
+                    trailing: Text('${roi.toStringAsFixed(1)}% ROI', style: TextStyle(color: roi >= 100 ? Colors.green : Colors.orange, fontWeight: FontWeight.bold)),
+                  ),
+                );
+              }),
+              const SizedBox(height: 32),
+              Text('Most Popular Items', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ...itemsSortedByPopularity.take(5).map((item) {
+                int count = itemRentalCounts[item.id] ?? 0;
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.star),
+                    title: Text(item.name),
+                    trailing: Text('$count Rentals', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

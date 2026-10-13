@@ -10,6 +10,8 @@ class DataService extends ChangeNotifier {
   List<Item> items = [];
   List<BorrowRequest> borrowRequests = [];
   List<Bill> bills = [];
+  List<String> categories = ['IT', 'Household', 'Audio/Video'];
+  List<String> pendingCategories = [];
 
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
@@ -23,10 +25,151 @@ class DataService extends ChangeNotifier {
     notifyListeners();
   }
 
+    void requestOrAddCategory(User currentUser, String newCategory) {
+    newCategory = newCategory.trim();
+    if (newCategory.isEmpty) return;
+    if (categories.contains(newCategory)) return;
+
+    if (currentUser.role == UserRole.admin) {
+      categories.add(newCategory);
+      pendingCategories.remove(newCategory);
+    } else if (currentUser.role == UserRole.employee) {
+      if (!pendingCategories.contains(newCategory)) {
+        pendingCategories.add(newCategory);
+      }
+    } else {
+      throw Exception('Unauthorized');
+    }
+    notifyListeners();
+  }
+
+  void approveCategory(User currentUser, String category) {
+    if (currentUser.role != UserRole.admin) throw Exception('Only admins can approve categories');
+    if (pendingCategories.contains(category)) {
+      pendingCategories.remove(category);
+      if (!categories.contains(category)) {
+        categories.add(category);
+      }
+      notifyListeners();
+    }
+  }
+
+  void rejectCategory(User currentUser, String category) {
+    if (currentUser.role != UserRole.admin) throw Exception('Only admins can reject categories');
+    pendingCategories.remove(category);
+    notifyListeners();
+  }
+
+  void toggleUserSuspension(User currentUser, String userId) {
+    if (currentUser.role != UserRole.admin) throw Exception('Only Admins can suspend users.');
+    final userIndex = users.indexWhere((u) => u.id == userId);
+    if (userIndex != -1) {
+      final u = users[userIndex];
+      users[userIndex] = u.copyWith(isSuspended: !u.isSuspended);
+      notifyListeners();
+    }
+  }
+
+  String getItemLocation(User currentUser, String itemId) {
+    if (currentUser.role == UserRole.customer) {
+      return '';
+    }
+    final now = DateTime.now();
+    final activeRequest = borrowRequests.where((r) =>
+        r.itemId == itemId &&
+        !r.isReturned &&
+        r.startDate.isBefore(now) &&
+        r.returnDate.isAfter(now.subtract(const Duration(days: 1)))).toList();
+    if (activeRequest.isNotEmpty) {
+      return activeRequest.first.location;
+    }
+    return 'Skladišče';
+  }
+
+  void processReturn(User currentUser, String requestId, bool isDamaged) {
+    if (currentUser.role == UserRole.customer) {
+      throw Exception('Unauthorized: Customers cannot process returns.');
+    }
+
+    final reqIndex = borrowRequests.indexWhere((r) => r.id == requestId);
+    if (reqIndex == -1) throw Exception('Request not found.');
+
+    final req = borrowRequests[reqIndex];
+    // Create new BorrowRequest to update isReturned
+    borrowRequests[reqIndex] = BorrowRequest(
+      id: req.id,
+      userId: req.userId,
+      itemId: req.itemId,
+      startDate: req.startDate,
+      returnDate: req.returnDate,
+      location: req.location,
+      disclaimers: req.disclaimers,
+      penalties: req.penalties,
+      isReturned: true,
+    );
+
+    // Update Item condition
+    if (isDamaged) {
+      final itemIndex = items.indexWhere((i) => i.id == req.itemId);
+      if (itemIndex != -1) {
+        items[itemIndex].isDamaged = true;
+        items[itemIndex].availableQuantity = 0; // Mark unavailable
+      }
+    }
+
+    // Recalculate bill if early return
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final reqStart = DateTime(req.startDate.year, req.startDate.month, req.startDate.day);
+    final reqEnd = DateTime(req.returnDate.year, req.returnDate.month, req.returnDate.day);
+
+    if (today.isBefore(reqEnd)) {
+      int daysOriginally = reqEnd.difference(reqStart).inDays + 1;
+      int daysUsed = today.difference(reqStart).inDays + 1;
+      if (daysUsed < 1) daysUsed = 1;
+
+      int daysEarly = daysOriginally - daysUsed;
+      if (daysEarly > 0) {
+        final item = items.firstWhere((i) => i.id == req.itemId);
+        double newAmount = 0;
+        if (daysEarly == 1) {
+          newAmount = (daysUsed * item.pricePerDay) + (0.5 * item.pricePerDay);
+        } else {
+          newAmount = (daysUsed * item.pricePerDay) + (1.0 * item.pricePerDay);
+        }
+
+        final billIndex = bills.indexWhere((b) => b.borrowRequestId == req.id);
+        if (billIndex != -1) {
+          final b = bills[billIndex];
+          bills[billIndex] = Bill(
+            id: b.id,
+            customerId: b.customerId,
+            employeeId: b.employeeId,
+            amount: newAmount,
+            status: b.status,
+            borrowRequestId: b.borrowRequestId,
+          );
+        }
+      }
+    }
+
+    // Check for strikes
+    bool shouldAddStrike = isDamaged || DateTime.now().isAfter(req.returnDate.add(const Duration(days: 1)));
+    if (shouldAddStrike) {
+      final userIndex = users.indexWhere((u) => u.id == req.userId);
+      if (userIndex != -1) {
+        final u = users[userIndex];
+        users[userIndex] = u.copyWith(strikes: u.strikes + 1);
+      }
+    }
+
+    notifyListeners();
+  }
+
   void _seedData() {
     // Bills
-    bills.add(Bill(id: 'b1', customerId: 'u4', employeeId: 'u2', amount: 150.0));
-    bills.add(Bill(id: 'b2', customerId: 'u5', employeeId: 'u3', amount: 50.0));
+    bills.add(Bill(id: 'b1', customerId: 'u4', employeeId: 'u2', amount: 150.0, borrowRequestId: 'br1'));
+    bills.add(Bill(id: 'b2', customerId: 'u5', employeeId: 'u3', amount: 50.0, borrowRequestId: 'br2'));
 
     // 1 Admin
     users.add(User(id: 'u1', name: 'Alice Admin', role: UserRole.admin));
@@ -44,32 +187,32 @@ class DataService extends ChangeNotifier {
 
     // Items
     // IT & Computers
-    items.add(Item(id: 'i1', name: 'MacBook Pro 16"', category: 'IT & Computers', subcategory: 'Laptops', totalQuantity: 3, availableQuantity: 3, pricePerDay: 50.0, specs: {'Processor': 'M2 Max', 'RAM': '32GB', 'Storage': '1TB SSD'}));
-    items.add(Item(id: 'i2', name: 'Dell XPS 15', category: 'IT & Computers', subcategory: 'Laptops', totalQuantity: 2, availableQuantity: 2, pricePerDay: 40.0, specs: {'Processor': 'Intel i9', 'RAM': '32GB', 'Display': '4K OLED'}));
-    items.add(Item(id: 'i3', name: 'iPad Pro 12.9"', category: 'IT & Computers', subcategory: 'Tablets', totalQuantity: 4, availableQuantity: 4, pricePerDay: 25.0, specs: {'Chip': 'M2', 'Storage': '256GB', 'Display': 'Liquid Retina XDR'}));
-    items.add(Item(id: 'i4', name: 'ThinkPad X1 Carbon', category: 'IT & Computers', subcategory: 'Laptops', totalQuantity: 5, availableQuantity: 5, pricePerDay: 35.0, specs: {'Processor': 'Intel i7', 'RAM': '16GB', 'Weight': '1.12kg'}));
+    items.add(Item(id: 'i1', name: 'MacBook Pro 16"', category: 'IT & Computers', subcategory: 'Laptops', totalQuantity: 3, availableQuantity: 3, pricePerDay: 50.0, purchaseCost: 1500.0, specs: {'Processor': 'M2 Max', 'RAM': '32GB', 'Storage': '1TB SSD'}));
+    items.add(Item(id: 'i2', name: 'Dell XPS 15', category: 'IT & Computers', subcategory: 'Laptops', totalQuantity: 2, availableQuantity: 2, pricePerDay: 40.0, purchaseCost: 1200.0, specs: {'Processor': 'Intel i9', 'RAM': '32GB', 'Display': '4K OLED'}));
+    items.add(Item(id: 'i3', name: 'iPad Pro 12.9"', category: 'IT & Computers', subcategory: 'Tablets', totalQuantity: 4, availableQuantity: 4, pricePerDay: 25.0, purchaseCost: 800.0, specs: {'Chip': 'M2', 'Storage': '256GB', 'Display': 'Liquid Retina XDR'}));
+    items.add(Item(id: 'i4', name: 'ThinkPad X1 Carbon', category: 'IT & Computers', subcategory: 'Laptops', totalQuantity: 5, availableQuantity: 5, pricePerDay: 35.0, purchaseCost: 1100.0, specs: {'Processor': 'Intel i7', 'RAM': '16GB', 'Weight': '1.12kg'}));
 
     // Photo & Video
-    items.add(Item(id: 'i5', name: 'Sony A7S III', category: 'Photo & Video', subcategory: 'Cameras', totalQuantity: 2, availableQuantity: 2, pricePerDay: 70.0, specs: {'Sensor': 'Full-Frame', 'Resolution': '12.1MP', 'Video': '4K 120p'}));
-    items.add(Item(id: 'i6', name: 'Canon EOS R5', category: 'Photo & Video', subcategory: 'Cameras', totalQuantity: 1, availableQuantity: 1, pricePerDay: 80.0, specs: {'Sensor': 'Full-Frame', 'Resolution': '45MP', 'Video': '8K RAW'}));
-    items.add(Item(id: 'i7', name: 'DJI Ronin RS 3 Pro', category: 'Photo & Video', subcategory: 'Accessories', totalQuantity: 3, availableQuantity: 3, pricePerDay: 40.0, specs: {'Payload': '4.5kg', 'Battery': '12h', 'Weight': '1.5kg'}));
-    items.add(Item(id: 'i8', name: 'Aputure 300d II', category: 'Photo & Video', subcategory: 'Lighting', totalQuantity: 4, availableQuantity: 4, pricePerDay: 30.0, specs: {'Output': '80,000 lux', 'Color Temp': '5500K', 'CRI': '96+'}));
+    items.add(Item(id: 'i5', name: 'Sony A7S III', category: 'Photo & Video', subcategory: 'Cameras', totalQuantity: 2, availableQuantity: 2, pricePerDay: 70.0, purchaseCost: 3500.0, specs: {'Sensor': 'Full-Frame', 'Resolution': '12.1MP', 'Video': '4K 120p'}));
+    items.add(Item(id: 'i6', name: 'Canon EOS R5', category: 'Photo & Video', subcategory: 'Cameras', totalQuantity: 1, availableQuantity: 1, pricePerDay: 80.0, purchaseCost: 3800.0, specs: {'Sensor': 'Full-Frame', 'Resolution': '45MP', 'Video': '8K RAW'}));
+    items.add(Item(id: 'i7', name: 'DJI Ronin RS 3 Pro', category: 'Photo & Video', subcategory: 'Accessories', totalQuantity: 3, availableQuantity: 3, pricePerDay: 40.0, purchaseCost: 1200.0, specs: {'Payload': '4.5kg', 'Battery': '12h', 'Weight': '1.5kg'}));
+    items.add(Item(id: 'i8', name: 'Aputure 300d II', category: 'Photo & Video', subcategory: 'Lighting', totalQuantity: 4, availableQuantity: 4, pricePerDay: 30.0, purchaseCost: 900.0, specs: {'Output': '80,000 lux', 'Color Temp': '5500K', 'CRI': '96+'}));
 
     // Tools & Home
-    items.add(Item(id: 'i9', name: 'Kärcher K5 Premium', category: 'Tools & Home', subcategory: 'Cleaning', totalQuantity: 3, availableQuantity: 3, pricePerDay: 20.0, specs: {'Pressure': '145 bar', 'Flow Rate': '500 l/h', 'Power': '2.1 kW'}));
-    items.add(Item(id: 'i10', name: 'Bosch Professional Drill', category: 'Tools & Home', subcategory: 'Power Tools', totalQuantity: 5, availableQuantity: 5, pricePerDay: 15.0, specs: {'Torque': '63 Nm', 'Battery': '18V', 'Chuck': '13mm'}));
-    items.add(Item(id: 'i11', name: 'Makita Circular Saw', category: 'Tools & Home', subcategory: 'Power Tools', totalQuantity: 2, availableQuantity: 2, pricePerDay: 18.0, specs: {'Blade Size': '190mm', 'Max Cut': '66mm', 'Power': '1200W'}));
-    items.add(Item(id: 'i12', name: 'Festool Sander', category: 'Tools & Home', subcategory: 'Power Tools', totalQuantity: 2, availableQuantity: 2, pricePerDay: 25.0, specs: {'Pad Size': '150mm', 'Stroke': '3mm', 'Power': '400W'}));
+    items.add(Item(id: 'i9', name: 'Kärcher K5 Premium', category: 'Tools & Home', subcategory: 'Cleaning', totalQuantity: 3, availableQuantity: 3, pricePerDay: 20.0, purchaseCost: 500.0, specs: {'Pressure': '145 bar', 'Flow Rate': '500 l/h', 'Power': '2.1 kW'}));
+    items.add(Item(id: 'i10', name: 'Bosch Professional Drill', category: 'Tools & Home', subcategory: 'Power Tools', totalQuantity: 5, availableQuantity: 5, pricePerDay: 15.0, purchaseCost: 200.0, specs: {'Torque': '63 Nm', 'Battery': '18V', 'Chuck': '13mm'}));
+    items.add(Item(id: 'i11', name: 'Makita Circular Saw', category: 'Tools & Home', subcategory: 'Power Tools', totalQuantity: 2, availableQuantity: 2, pricePerDay: 18.0, purchaseCost: 250.0, specs: {'Blade Size': '190mm', 'Max Cut': '66mm', 'Power': '1200W'}));
+    items.add(Item(id: 'i12', name: 'Festool Sander', category: 'Tools & Home', subcategory: 'Power Tools', totalQuantity: 2, availableQuantity: 2, pricePerDay: 25.0, purchaseCost: 800.0, specs: {'Pad Size': '150mm', 'Stroke': '3mm', 'Power': '400W'}));
 
     // Audio
-    items.add(Item(id: 'i13', name: 'Rode NTG4+ Mic', category: 'Audio', subcategory: 'Microphones', totalQuantity: 4, availableQuantity: 4, pricePerDay: 20.0, specs: {'Type': 'Shotgun', 'Battery': '150h', 'Phantom Power': 'Yes'}));
-    items.add(Item(id: 'i14', name: 'Zoom H6 Recorder', category: 'Audio', subcategory: 'Recorders', totalQuantity: 3, availableQuantity: 3, pricePerDay: 25.0, specs: {'Tracks': '6', 'Inputs': '4x XLR/TRS', 'Resolution': '24-bit/96kHz'}));
-    items.add(Item(id: 'i15', name: 'Sennheiser G4 Wireless', category: 'Audio', subcategory: 'Microphones', totalQuantity: 4, availableQuantity: 4, pricePerDay: 35.0, specs: {'Range': '100m', 'Band': 'UHF', 'Battery': '8h'}));
+    items.add(Item(id: 'i13', name: 'Rode NTG4+ Mic', category: 'Audio', subcategory: 'Microphones', totalQuantity: 4, availableQuantity: 4, pricePerDay: 20.0, purchaseCost: 500.0, specs: {'Type': 'Shotgun', 'Battery': '150h', 'Phantom Power': 'Yes'}));
+    items.add(Item(id: 'i14', name: 'Zoom H6 Recorder', category: 'Audio', subcategory: 'Recorders', totalQuantity: 3, availableQuantity: 3, pricePerDay: 25.0, purchaseCost: 800.0, specs: {'Tracks': '6', 'Inputs': '4x XLR/TRS', 'Resolution': '24-bit/96kHz'}));
+    items.add(Item(id: 'i15', name: 'Sennheiser G4 Wireless', category: 'Audio', subcategory: 'Microphones', totalQuantity: 4, availableQuantity: 4, pricePerDay: 35.0, purchaseCost: 1100.0, specs: {'Range': '100m', 'Band': 'UHF', 'Battery': '8h'}));
 
     // Gaming
-    items.add(Item(id: 'i16', name: 'PlayStation 5', category: 'Gaming', subcategory: 'Consoles', totalQuantity: 3, availableQuantity: 3, pricePerDay: 20.0, specs: {'Storage': '825GB SSD', 'Resolution': '4K 120Hz', 'Controllers': '2'}));
-    items.add(Item(id: 'i17', name: 'Xbox Series X', category: 'Gaming', subcategory: 'Consoles', totalQuantity: 2, availableQuantity: 2, pricePerDay: 20.0, specs: {'Storage': '1TB SSD', 'Resolution': '4K 120Hz', 'Controllers': '2'}));
-    items.add(Item(id: 'i18', name: 'Meta Quest 3', category: 'Gaming', subcategory: 'VR', totalQuantity: 4, availableQuantity: 4, pricePerDay: 30.0, specs: {'Storage': '512GB', 'Resolution': '4K+ Infinite Display', 'Controllers': 'Touch Plus'}));
+    items.add(Item(id: 'i16', name: 'PlayStation 5', category: 'Gaming', subcategory: 'Consoles', totalQuantity: 3, availableQuantity: 3, pricePerDay: 20.0, purchaseCost: 500.0, specs: {'Storage': '825GB SSD', 'Resolution': '4K 120Hz', 'Controllers': '2'}));
+    items.add(Item(id: 'i17', name: 'Xbox Series X', category: 'Gaming', subcategory: 'Consoles', totalQuantity: 2, availableQuantity: 2, pricePerDay: 20.0, purchaseCost: 500.0, specs: {'Storage': '1TB SSD', 'Resolution': '4K 120Hz', 'Controllers': '2'}));
+    items.add(Item(id: 'i18', name: 'Meta Quest 3', category: 'Gaming', subcategory: 'VR', totalQuantity: 4, availableQuantity: 4, pricePerDay: 30.0, purchaseCost: 900.0, specs: {'Storage': '512GB', 'Resolution': '4K+ Infinite Display', 'Controllers': 'Touch Plus'}));
 
     // Add some initial reservations
     final now = DateTime.now();
@@ -79,6 +222,44 @@ class DataService extends ChangeNotifier {
 
     // Completely booked out for next 3 days
     borrowRequests.add(BorrowRequest(id: 'br3', userId: 'u6', itemId: 'i6', startDate: now, returnDate: now.add(const Duration(days: 3)))); // Only 1 total
+
+        // Historical BorrowRequests and Bills for Analytics
+    for (int i = 0; i < 20; i++) {
+      borrowRequests.add(BorrowRequest(
+        id: 'hist_br$i',
+        userId: 'u4',
+        itemId: 'i1',
+        startDate: now.subtract(Duration(days: 30 + i * 5)),
+        returnDate: now.subtract(Duration(days: 28 + i * 5)),
+        isReturned: true,
+      ));
+      bills.add(Bill(
+        id: 'hist_b$i',
+        customerId: 'u4',
+        employeeId: 'u2',
+        amount: 100.0,
+        status: BillStatus.paid,
+        borrowRequestId: 'hist_br$i',
+      ));
+    }
+    for (int i = 0; i < 15; i++) {
+      borrowRequests.add(BorrowRequest(
+        id: 'hist_br2_$i',
+        userId: 'u5',
+        itemId: 'i5',
+        startDate: now.subtract(Duration(days: 40 + i * 4)),
+        returnDate: now.subtract(Duration(days: 38 + i * 4)),
+        isReturned: true,
+      ));
+      bills.add(Bill(
+        id: 'hist_b2_$i',
+        customerId: 'u5',
+        employeeId: 'u2',
+        amount: 140.0,
+        status: BillStatus.paid,
+        borrowRequestId: 'hist_br2_$i',
+      ));
+    }
 
     // Reservations for i16
     borrowRequests.add(BorrowRequest(id: 'br4', userId: 'u7', itemId: 'i16', startDate: now.add(const Duration(days: 5)), returnDate: now.add(const Duration(days: 10))));
@@ -187,9 +368,13 @@ class DataService extends ChangeNotifier {
     return borrowRequests.where((req) => req.itemId == itemId).toList();
   }
 
-  void processItemReservation(User currentUser, String itemId, DateTime start, DateTime end) {
+  void processItemReservation(User currentUser, String itemId, DateTime start, DateTime end, {String location = 'Skladišče'}) {
     if (currentUser.role != UserRole.customer) {
       throw Exception('Unauthorized: Only Customers can reserve items.');
+    }
+    final user = users.firstWhere((u) => u.id == currentUser.id, orElse: () => currentUser);
+    if (user.isSuspended) {
+      throw Exception('Error: Your account is suspended due to too many strikes.');
     }
 
     final now = DateTime.now();
@@ -221,12 +406,13 @@ class DataService extends ChangeNotifier {
       itemId: itemId,
       startDate: start,
       returnDate: end,
+      location: location,
     ));
 
     notifyListeners();
   }
 
-  void createWalkInTicket(User currentUser, String customerId, String itemId, DateTime start, DateTime end) {
+  void createWalkInTicket(User currentUser, String customerId, String itemId, DateTime start, DateTime end, {String location = 'Skladišče'}) {
     if (currentUser.role != UserRole.employee) {
       throw Exception('Unauthorized: Only Employees can create walk-in tickets.');
     }
@@ -261,6 +447,7 @@ class DataService extends ChangeNotifier {
       itemId: itemId,
       startDate: start,
       returnDate: end,
+      location: location,
     ));
 
     int days = end.difference(start).inDays + 1;
@@ -272,6 +459,7 @@ class DataService extends ChangeNotifier {
       customerId: customerId,
       employeeId: currentUser.id,
       amount: amount,
+      borrowRequestId: newId,
     ));
 
     notifyListeners();
