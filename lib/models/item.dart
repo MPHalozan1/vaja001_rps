@@ -6,7 +6,9 @@ class Item {
   final int totalQuantity;
   int availableQuantity;
   final double pricePerDay;
+  final double purchaseCost;
   final Map<String, String> specs;
+  bool isDamaged;
 
   Item({
     required this.id,
@@ -16,6 +18,8 @@ class Item {
     required this.totalQuantity,
     required this.availableQuantity,
     this.pricePerDay = 0.0,
+    this.purchaseCost = 0.0,
     this.specs = const {},
+    this.isDamaged = false,
   });
 }

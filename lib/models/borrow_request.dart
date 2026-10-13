@@ -6,6 +6,8 @@ class BorrowRequest {
   final DateTime returnDate;
   final String? disclaimers;
   final double? penalties;
+  final String location;
+  final bool isReturned;
 
   BorrowRequest({
     required this.id,
@@ -15,5 +17,7 @@ class BorrowRequest {
     required this.returnDate,
     this.disclaimers,
     this.penalties,
+    this.location = 'Skladišče',
+    this.isReturned = false,
   });
 }
