@@ -66,11 +66,11 @@ class _ItemsTab extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.inventory_2_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                      Icon(Icons.inventory_2_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
                         'No items in inventory.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
@@ -204,11 +204,11 @@ class _UsersTab extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.people_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                      Icon(Icons.people_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
                         'No users found.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
@@ -343,11 +343,11 @@ class _BillsTab extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.receipt_long_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                      Icon(Icons.receipt_long_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
                         'No bills found.',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),

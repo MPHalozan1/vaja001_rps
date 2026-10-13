@@ -48,11 +48,13 @@ class _BorrowFormScreenState extends State<BorrowFormScreen> {
                     icon: const Icon(Icons.calendar_today),
                     label: Text(_startDate == null ? 'Start Date' : DateFormat('MMM d, y').format(_startDate!)),
                     onPressed: () async {
+                      final now = DateTime.now();
+                      final today = DateTime(now.year, now.month, now.day);
                       final date = await showDatePicker(
                         context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDate: today,
+                        firstDate: today,
+                        lastDate: today.add(const Duration(days: 365)),
                       );
                       if (date != null) {
                         setState(() {

@@ -81,7 +81,7 @@ class DataService extends ChangeNotifier {
 
   // --- Item Management ---
   void addItem(User currentUser, Item item) {
-    if (currentUser.role == UserRole.customer) {
+    if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
       throw Exception('Unauthorized: Customers cannot add items.');
     }
     if (item.totalQuantity < 0) {
@@ -95,7 +95,7 @@ class DataService extends ChangeNotifier {
   }
 
   void removeItem(User currentUser, String id) {
-    if (currentUser.role == UserRole.customer) {
+    if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
       throw Exception('Unauthorized: Customers cannot remove items.');
     }
     items.removeWhere((item) => item.id == id);
