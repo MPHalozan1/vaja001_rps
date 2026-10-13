@@ -13,7 +13,7 @@ class ManagementDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Management Dashboard'),
@@ -21,21 +21,18 @@ class ManagementDashboardScreen extends StatelessWidget {
             tabs: [
               Tab(icon: Icon(Icons.inventory), text: 'Items'),
               Tab(icon: Icon(Icons.people), text: 'Users'),
-              Tab(icon: Icon(Icons.receipt), text: 'Bills'),
+              Tab(icon: Icon(Icons.receipt_long), text: 'Bills'),
             ],
           ),
         ),
         body: TabBarView(
           children: [
-            _ItemsTab(),
+            _ItemsTab(currentUser: currentUser),
             if (currentUser.role == UserRole.admin)
-              _UsersTab()
+              _UsersTab(currentUser: currentUser)
             else
               const Center(child: Text('Only Admins can manage users.')),
-            if (currentUser.role == UserRole.admin)
-              _BillsTab()
-            else
-              const Center(child: Text('Only Admins can manage bills.')),
+            _BillsTab(currentUser: currentUser),
           ],
         ),
       ),
@@ -99,15 +96,14 @@ class _BillsTab extends StatelessWidget {
 }
 
 class _ItemsTab extends StatelessWidget {
+  final User currentUser;
+
+  const _ItemsTab({required this.currentUser});
+
   @override
   Widget build(BuildContext context) {
     final dataService = Provider.of<DataService>(context);
     final items = dataService.items;
-
-    // We need to access the currentUser from the parent state.
-    // An easy way is to grab it from the closest ManagementDashboardScreen context.
-    final dashboard = context.findAncestorWidgetOfExactType<ManagementDashboardScreen>();
-    final currentUser = dashboard!.currentUser;
 
     return Column(
       children: [
@@ -116,7 +112,7 @@ class _ItemsTab extends StatelessWidget {
           child: ElevatedButton.icon(
             icon: const Icon(Icons.add),
             label: const Text('Add New Item'),
-            onPressed: () => _showAddItemDialog(context, dataService, currentUser),
+            onPressed: () => _showAddItemBottomSheet(context, dataService, currentUser),
           ),
         ),
         Expanded(
@@ -160,63 +156,77 @@ class _ItemsTab extends StatelessWidget {
     );
   }
 
-  void _showAddItemDialog(BuildContext context, DataService dataService, User currentUser) {
+  void _showAddItemBottomSheet(BuildContext context, DataService dataService, User currentUser) {
     final nameController = TextEditingController();
     final catController = TextEditingController();
     final subcatController = TextEditingController();
     final qtyController = TextEditingController();
     final priceController = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Add New Item'),
-          content: SingleChildScrollView(
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text('Add New Item', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
                 TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
                 TextField(controller: catController, decoration: const InputDecoration(labelText: 'Category')),
                 TextField(controller: subcatController, decoration: const InputDecoration(labelText: 'Subcategory')),
                 TextField(controller: qtyController, decoration: const InputDecoration(labelText: 'Total Quantity'), keyboardType: TextInputType.number),
                 TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Price Per Day'), keyboardType: TextInputType.number),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                    FilledButton(
+                      onPressed: () {
+                        final qty = int.tryParse(qtyController.text) ?? -1;
+                        final price = double.tryParse(priceController.text) ?? -1.0;
+
+                        if (qty < 0 || price < 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error: Quantity and Price must be 0 or greater.'), backgroundColor: Colors.red));
+                          return;
+                        }
+
+                        final newItem = Item(
+                          id: 'i${DateTime.now().millisecondsSinceEpoch}',
+                          name: nameController.text.isNotEmpty ? nameController.text : 'Unknown',
+                          category: catController.text.isNotEmpty ? catController.text : 'Misc',
+                          subcategory: subcatController.text,
+                          totalQuantity: qty,
+                          availableQuantity: qty,
+                          pricePerDay: price,
+                        );
+
+                        try {
+                          dataService.addItem(currentUser, newItem);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added successfully.')));
+                          Navigator.pop(context);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                        }
+                      },
+                      child: const Text('Add'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            TextButton(
-              onPressed: () {
-                final qty = int.tryParse(qtyController.text) ?? -1;
-                final price = double.tryParse(priceController.text) ?? -1.0;
-
-                if (qty < 0 || price < 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error: Quantity and Price must be 0 or greater.'), backgroundColor: Colors.red));
-                  return;
-                }
-
-                final newItem = Item(
-                  id: 'i${DateTime.now().millisecondsSinceEpoch}',
-                  name: nameController.text.isNotEmpty ? nameController.text : 'Unknown',
-                  category: catController.text.isNotEmpty ? catController.text : 'Misc',
-                  subcategory: subcatController.text,
-                  totalQuantity: qty,
-                  availableQuantity: qty,
-                  pricePerDay: price,
-                );
-
-                try {
-                  dataService.addItem(currentUser, newItem);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added successfully.')));
-                  Navigator.pop(context);
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
         );
       },
     );
@@ -224,13 +234,14 @@ class _ItemsTab extends StatelessWidget {
 }
 
 class _UsersTab extends StatelessWidget {
+  final User currentUser;
+
+  const _UsersTab({required this.currentUser});
+
   @override
   Widget build(BuildContext context) {
     final dataService = Provider.of<DataService>(context);
     final users = dataService.users;
-
-    final dashboard = context.findAncestorWidgetOfExactType<ManagementDashboardScreen>();
-    final currentUser = dashboard!.currentUser;
 
     return Column(
       children: [
@@ -239,7 +250,7 @@ class _UsersTab extends StatelessWidget {
           child: ElevatedButton.icon(
             icon: const Icon(Icons.person_add),
             label: const Text('Add New User'),
-            onPressed: () => _showAddUserDialog(context, dataService, currentUser),
+            onPressed: () => _showAddUserBottomSheet(context, dataService, currentUser),
           ),
         ),
         Expanded(
@@ -302,20 +313,29 @@ class _UsersTab extends StatelessWidget {
     );
   }
 
-  void _showAddUserDialog(BuildContext context, DataService dataService, User currentUser) {
+  void _showAddUserBottomSheet(BuildContext context, DataService dataService, User currentUser) {
     final nameController = TextEditingController();
     UserRole selectedRole = UserRole.customer;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Add New User'),
-              content: Column(
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text('Add New User', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 16),
                   TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
                   const SizedBox(height: 16),
                   DropdownButton<UserRole>(
@@ -328,29 +348,90 @@ class _UsersTab extends StatelessWidget {
                       if (val != null) setState(() => selectedRole = val);
                     },
                   ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                      FilledButton(
+                        onPressed: () {
+                          if (nameController.text.isNotEmpty) {
+                            try {
+                              dataService.addUser(currentUser, nameController.text, selectedRole);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User added successfully.')));
+                              Navigator.pop(context);
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                            }
+                          }
+                        },
+                        child: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                TextButton(
-                  onPressed: () {
-                    if (nameController.text.isNotEmpty) {
-                      try {
-                        dataService.addUser(currentUser, nameController.text, selectedRole);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User added successfully.')));
-                        Navigator.pop(context);
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                      }
-                    }
-                  },
-                  child: const Text('Add'),
-                ),
-              ],
             );
           },
         );
       },
+    );
+  }
+}
+
+class _BillsTab extends StatelessWidget {
+  final User currentUser;
+
+  const _BillsTab({required this.currentUser});
+
+  @override
+  Widget build(BuildContext context) {
+    final dataService = Provider.of<DataService>(context);
+    final bills = dataService.bills;
+
+    return Column(
+      children: [
+        Expanded(
+          child: bills.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.receipt_long_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No bills found.',
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: bills.length,
+                  itemBuilder: (context, index) {
+                    final bill = bills[index];
+                    return ListTile(
+                      title: Text('Bill ID: ${bill.id} - \$${bill.amount.toStringAsFixed(2)}'),
+                      subtitle: Text('Status: ${bill.status.name}'),
+                      trailing: bill.status == BillStatus.pendingAdminApproval
+                          ? FilledButton.tonal(
+                              onPressed: () {
+                                try {
+                                  dataService.approveBill(currentUser, bill.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill approved')));
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                }
+                              },
+                              child: const Text('Approve'),
+                            )
+                          : null,
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }

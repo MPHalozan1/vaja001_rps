@@ -15,6 +15,10 @@ class DataService extends ChangeNotifier {
   }
 
   void _seedData() {
+    // Bills
+    bills.add(Bill(id: 'b1', customerId: 'u4', employeeId: 'u2', amount: 150.0));
+    bills.add(Bill(id: 'b2', customerId: 'u5', employeeId: 'u3', amount: 50.0));
+
     // 1 Admin
     users.add(User(id: 'u1', name: 'Alice Admin', role: UserRole.admin));
 
@@ -127,21 +131,25 @@ class DataService extends ChangeNotifier {
     return borrowRequests.where((req) => req.itemId == itemId).toList();
   }
 
-  String addBorrowRequest(User currentUser, String itemId, DateTime start, DateTime end) {
+  void addBorrowRequest(User currentUser, String itemId, DateTime start, DateTime end) {
+    if (currentUser.role != UserRole.customer) {
+      throw Exception('Unauthorized: Only Customers can reserve items.');
+    }
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final reqStart = DateTime(start.year, start.month, start.day);
     final reqEnd = DateTime(end.year, end.month, end.day);
 
     if (reqStart.isBefore(today)) {
-      return 'Error: Start date cannot be in the past.';
+      throw Exception('Error: Start date cannot be in the past.');
     }
     if (reqEnd.isBefore(reqStart)) {
-      return 'Error: End date cannot be before start date.';
+      throw Exception('Error: End date cannot be before start date.');
     }
 
     if (!isItemAvailableForDates(itemId, start, end)) {
-      return 'Error: Dates overlap or item not available.';
+      throw Exception('Error: Dates overlap or item not available.');
     }
 
     // Check if user is actually in system
@@ -159,11 +167,22 @@ class DataService extends ChangeNotifier {
       returnDate: end,
     ));
 
-    // In a real app we might update availableQuantity based on CURRENT date,
-    // but here availableQuantity could be dynamically calculated.
-    // For simplicity, we just rely on totalQuantity and reservations.
     notifyListeners();
-    return 'Success';
+  }
+
+  void approveBill(User currentUser, String billId) {
+    if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
+      throw Exception('Unauthorized: Only Admins or Employees can approve bills.');
+    }
+
+    final bill = bills.firstWhere((b) => b.id == billId, orElse: () => throw Exception('Bill not found.'));
+
+    if (bill.status != BillStatus.pendingAdminApproval) {
+      throw Exception('Error: Bill is not pending approval.');
+    }
+
+    bill.status = BillStatus.approved;
+    notifyListeners();
   }
 
   // --- Bill Management ---
