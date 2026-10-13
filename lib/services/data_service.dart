@@ -2,7 +2,8 @@ import '../models/user.dart';
 import '../models/item.dart';
 import '../models/borrow_request.dart';
 import '../models/bill.dart';
-import 'package:flutter/foundation.dart';
+
+import 'package:flutter/material.dart';
 
 class DataService extends ChangeNotifier {
   List<User> users = [];
@@ -10,8 +11,16 @@ class DataService extends ChangeNotifier {
   List<BorrowRequest> borrowRequests = [];
   List<Bill> bills = [];
 
+  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode get themeMode => _themeMode;
+
   DataService() {
     _seedData();
+  }
+
+  void setThemeMode(ThemeMode mode) {
+    _themeMode = mode;
+    notifyListeners();
   }
 
   void _seedData() {
@@ -34,19 +43,45 @@ class DataService extends ChangeNotifier {
     users.add(User(id: 'u8', name: 'Henry Jones', role: UserRole.customer));
 
     // Items
-    // IT
-    items.add(Item(id: 'i1', name: 'MacBook Pro 16"', category: 'IT', subcategory: 'Laptops', totalQuantity: 3, availableQuantity: 3, pricePerDay: 50.0));
-    items.add(Item(id: 'i2', name: 'Dell XPS 15', category: 'IT', subcategory: 'Laptops', totalQuantity: 2, availableQuantity: 2, pricePerDay: 40.0));
-    items.add(Item(id: 'i3', name: 'iPad Pro', category: 'IT', subcategory: 'Tablets', totalQuantity: 4, availableQuantity: 4, pricePerDay: 25.0));
+    // IT & Computers
+    items.add(Item(id: 'i1', name: 'MacBook Pro 16"', category: 'IT & Computers', subcategory: 'Laptops', totalQuantity: 3, availableQuantity: 3, pricePerDay: 50.0, specs: {'Processor': 'M2 Max', 'RAM': '32GB', 'Storage': '1TB SSD'}));
+    items.add(Item(id: 'i2', name: 'Dell XPS 15', category: 'IT & Computers', subcategory: 'Laptops', totalQuantity: 2, availableQuantity: 2, pricePerDay: 40.0, specs: {'Processor': 'Intel i9', 'RAM': '32GB', 'Display': '4K OLED'}));
+    items.add(Item(id: 'i3', name: 'iPad Pro 12.9"', category: 'IT & Computers', subcategory: 'Tablets', totalQuantity: 4, availableQuantity: 4, pricePerDay: 25.0, specs: {'Chip': 'M2', 'Storage': '256GB', 'Display': 'Liquid Retina XDR'}));
+    items.add(Item(id: 'i4', name: 'ThinkPad X1 Carbon', category: 'IT & Computers', subcategory: 'Laptops', totalQuantity: 5, availableQuantity: 5, pricePerDay: 35.0, specs: {'Processor': 'Intel i7', 'RAM': '16GB', 'Weight': '1.12kg'}));
 
-    // Household (Gospodinjstva)
-    items.add(Item(id: 'i4', name: 'Kärcher Pressure Washer', category: 'Household', subcategory: 'Cleaning', totalQuantity: 2, availableQuantity: 2, pricePerDay: 15.0));
-    items.add(Item(id: 'i5', name: 'Bosch Power Drill', category: 'Household', subcategory: 'Tools', totalQuantity: 5, availableQuantity: 5, pricePerDay: 10.0));
+    // Photo & Video
+    items.add(Item(id: 'i5', name: 'Sony A7S III', category: 'Photo & Video', subcategory: 'Cameras', totalQuantity: 2, availableQuantity: 2, pricePerDay: 70.0, specs: {'Sensor': 'Full-Frame', 'Resolution': '12.1MP', 'Video': '4K 120p'}));
+    items.add(Item(id: 'i6', name: 'Canon EOS R5', category: 'Photo & Video', subcategory: 'Cameras', totalQuantity: 1, availableQuantity: 1, pricePerDay: 80.0, specs: {'Sensor': 'Full-Frame', 'Resolution': '45MP', 'Video': '8K RAW'}));
+    items.add(Item(id: 'i7', name: 'DJI Ronin RS 3 Pro', category: 'Photo & Video', subcategory: 'Accessories', totalQuantity: 3, availableQuantity: 3, pricePerDay: 40.0, specs: {'Payload': '4.5kg', 'Battery': '12h', 'Weight': '1.5kg'}));
+    items.add(Item(id: 'i8', name: 'Aputure 300d II', category: 'Photo & Video', subcategory: 'Lighting', totalQuantity: 4, availableQuantity: 4, pricePerDay: 30.0, specs: {'Output': '80,000 lux', 'Color Temp': '5500K', 'CRI': '96+'}));
 
-    // Audio/Video
-    items.add(Item(id: 'i6', name: 'Sony A7III Camera', category: 'Audio/Video', subcategory: 'Cameras', totalQuantity: 2, availableQuantity: 2, pricePerDay: 60.0));
-    items.add(Item(id: 'i7', name: 'Rode NTG4 Microphone', category: 'Audio/Video', subcategory: 'Audio', totalQuantity: 3, availableQuantity: 3, pricePerDay: 20.0));
-    items.add(Item(id: 'i8', name: 'DJI Ronin Gimbal', category: 'Audio/Video', subcategory: 'Accessories', totalQuantity: 1, availableQuantity: 1, pricePerDay: 35.0));
+    // Tools & Home
+    items.add(Item(id: 'i9', name: 'Kärcher K5 Premium', category: 'Tools & Home', subcategory: 'Cleaning', totalQuantity: 3, availableQuantity: 3, pricePerDay: 20.0, specs: {'Pressure': '145 bar', 'Flow Rate': '500 l/h', 'Power': '2.1 kW'}));
+    items.add(Item(id: 'i10', name: 'Bosch Professional Drill', category: 'Tools & Home', subcategory: 'Power Tools', totalQuantity: 5, availableQuantity: 5, pricePerDay: 15.0, specs: {'Torque': '63 Nm', 'Battery': '18V', 'Chuck': '13mm'}));
+    items.add(Item(id: 'i11', name: 'Makita Circular Saw', category: 'Tools & Home', subcategory: 'Power Tools', totalQuantity: 2, availableQuantity: 2, pricePerDay: 18.0, specs: {'Blade Size': '190mm', 'Max Cut': '66mm', 'Power': '1200W'}));
+    items.add(Item(id: 'i12', name: 'Festool Sander', category: 'Tools & Home', subcategory: 'Power Tools', totalQuantity: 2, availableQuantity: 2, pricePerDay: 25.0, specs: {'Pad Size': '150mm', 'Stroke': '3mm', 'Power': '400W'}));
+
+    // Audio
+    items.add(Item(id: 'i13', name: 'Rode NTG4+ Mic', category: 'Audio', subcategory: 'Microphones', totalQuantity: 4, availableQuantity: 4, pricePerDay: 20.0, specs: {'Type': 'Shotgun', 'Battery': '150h', 'Phantom Power': 'Yes'}));
+    items.add(Item(id: 'i14', name: 'Zoom H6 Recorder', category: 'Audio', subcategory: 'Recorders', totalQuantity: 3, availableQuantity: 3, pricePerDay: 25.0, specs: {'Tracks': '6', 'Inputs': '4x XLR/TRS', 'Resolution': '24-bit/96kHz'}));
+    items.add(Item(id: 'i15', name: 'Sennheiser G4 Wireless', category: 'Audio', subcategory: 'Microphones', totalQuantity: 4, availableQuantity: 4, pricePerDay: 35.0, specs: {'Range': '100m', 'Band': 'UHF', 'Battery': '8h'}));
+
+    // Gaming
+    items.add(Item(id: 'i16', name: 'PlayStation 5', category: 'Gaming', subcategory: 'Consoles', totalQuantity: 3, availableQuantity: 3, pricePerDay: 20.0, specs: {'Storage': '825GB SSD', 'Resolution': '4K 120Hz', 'Controllers': '2'}));
+    items.add(Item(id: 'i17', name: 'Xbox Series X', category: 'Gaming', subcategory: 'Consoles', totalQuantity: 2, availableQuantity: 2, pricePerDay: 20.0, specs: {'Storage': '1TB SSD', 'Resolution': '4K 120Hz', 'Controllers': '2'}));
+    items.add(Item(id: 'i18', name: 'Meta Quest 3', category: 'Gaming', subcategory: 'VR', totalQuantity: 4, availableQuantity: 4, pricePerDay: 30.0, specs: {'Storage': '512GB', 'Resolution': '4K+ Infinite Display', 'Controllers': 'Touch Plus'}));
+
+    // Add some initial reservations
+    final now = DateTime.now();
+    // Overlapping reservations for i1
+    borrowRequests.add(BorrowRequest(id: 'br1', userId: 'u4', itemId: 'i1', startDate: now.subtract(const Duration(days: 2)), returnDate: now.add(const Duration(days: 2))));
+    borrowRequests.add(BorrowRequest(id: 'br2', userId: 'u5', itemId: 'i1', startDate: now.add(const Duration(days: 1)), returnDate: now.add(const Duration(days: 4))));
+
+    // Completely booked out for next 3 days
+    borrowRequests.add(BorrowRequest(id: 'br3', userId: 'u6', itemId: 'i6', startDate: now, returnDate: now.add(const Duration(days: 3)))); // Only 1 total
+
+    // Reservations for i16
+    borrowRequests.add(BorrowRequest(id: 'br4', userId: 'u7', itemId: 'i16', startDate: now.add(const Duration(days: 5)), returnDate: now.add(const Duration(days: 10))));
   }
 
   // --- User Management ---
@@ -122,6 +157,9 @@ class DataService extends ChangeNotifier {
   }
 
   // --- Reservation Logic ---
+  /// Checks if an item is available for a given date range.
+  /// It normalizes dates to midnight to ensure consistent comparison.
+  /// Two date ranges [s1, e1] and [s2, e2] overlap if max(s1, s2) <= min(e1, e2).
   bool checkItemAvailability(String itemId, DateTime start, DateTime end) {
     // Normalization to start of day for comparison
     final reqStart = DateTime(start.year, start.month, start.day);
@@ -133,7 +171,6 @@ class DataService extends ChangeNotifier {
       final existingEnd = DateTime(req.returnDate.year, req.returnDate.month, req.returnDate.day);
 
       // Check for overlap
-      // Two periods [s1, e1] and [s2, e2] overlap if max(s1, s2) <= min(e1, e2)
       final maxStart = reqStart.isAfter(existingStart) ? reqStart : existingStart;
       final minEnd = reqEnd.isBefore(existingEnd) ? reqEnd : existingEnd;
 

@@ -22,7 +22,7 @@ void main() {
     );
 
     // Verify that we are on the Sign In screen.
-    expect(find.text('NEON RENTALS'), findsOneWidget);
+    expect(find.text('RENTAL PLATFORM'), findsOneWidget);
     expect(find.text('SYSTEM LOGIN'), findsOneWidget);
   });
 }

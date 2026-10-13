@@ -51,89 +51,105 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Stats Row
-            Row(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildStatCard(context, 'Active Rentals', userRequests.length.toString(), Icons.inventory_2),
-                const SizedBox(width: 16),
-                _buildStatCard(context, 'Total Spent', '\$${totalSpent.toStringAsFixed(2)}', Icons.attach_money),
-              ],
-            ),
-            const SizedBox(height: 32),
+                // Stats Row
+                Row(
+                  children: [
+                    _buildStatCard(context, 'Active Rentals', userRequests.length.toString(), Icons.inventory_2),
+                    const SizedBox(width: 16),
+                    _buildStatCard(context, 'Total Spent', '\$${totalSpent.toStringAsFixed(2)}', Icons.attach_money),
+                  ],
+                ),
+                const SizedBox(height: 32),
 
-            // Profile Settings
-            Text('PROFILE SETTINGS', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(labelText: 'Display Name', prefixIcon: Icon(Icons.person)),
-                        validator: (v) => v!.isEmpty ? 'Name required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _contactController,
-                        decoration: const InputDecoration(labelText: 'Contact Info', prefixIcon: Icon(Icons.contact_mail)),
-                        validator: (v) => v!.isEmpty ? 'Contact required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              dataService.updateUserProfile(upToDateUser, _nameController.text, _contactController.text);
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated.')));
-                            }
-                          },
-                          child: const Text('SAVE CHANGES'),
+                // Profile Settings
+                Text('PROFILE SETTINGS', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Display Name *',
+                                prefixIcon: Icon(Icons.person),
+                                helperText: 'How you appear to staff.',
+                              ),
+                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter a display name.' : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _contactController,
+                              decoration: const InputDecoration(
+                                labelText: 'Contact Info *',
+                                prefixIcon: Icon(Icons.contact_mail),
+                                helperText: 'Email or phone number for notifications.',
+                              ),
+                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter your contact info.' : null,
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    dataService.updateUserProfile(upToDateUser, _nameController.text, _contactController.text);
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully.')));
+                                  }
+                                },
+                                child: const Text('SAVE CHANGES'),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-            // Active Rentals List
-            Text('RECENT ACTIVITY', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            if (userRequests.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32.0),
-                child: Center(child: Text('No recent rentals.', style: TextStyle(color: Colors.grey))),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: userRequests.length,
-                itemBuilder: (context, index) {
-                  final req = userRequests[index];
-                  final item = dataService.items.firstWhere((i) => i.id == req.itemId);
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      leading: Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
-                      title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('${DateFormat('MMM d, yyyy').format(req.startDate)} - ${DateFormat('MMM d, yyyy').format(req.returnDate)}'),
-                    ),
-                  );
-                },
-              ),
-          ],
+                // Active Rentals List
+                Text('RECENT ACTIVITY', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                if (userRequests.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Center(child: Text('No recent rentals.', style: TextStyle(color: Colors.grey))),
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: userRequests.length,
+                    itemBuilder: (context, index) {
+                      final req = userRequests[index];
+                      final item = dataService.items.firstWhere((i) => i.id == req.itemId);
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          leading: Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
+                          title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('${DateFormat('MMM d, yyyy').format(req.startDate)} - ${DateFormat('MMM d, yyyy').format(req.returnDate)}'),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );

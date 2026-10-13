@@ -64,7 +64,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final dataService = Provider.of<DataService>(context);
-    final reservations = dataService.getReservationsForItem(widget.item.id);
 
     return Scaffold(
       appBar: AppBar(
@@ -105,159 +104,229 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
             ),
 
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.item.category.toUpperCase(),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.secondary,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Theme.of(context).colorScheme.primary),
-                        ),
-                        child: Text(
-                          '\$${widget.item.pricePerDay.toStringAsFixed(2)} / DAY',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            widget.item.category.toUpperCase(),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.secondary,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.item.name,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Subcategory: ${widget.item.subcategory}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Specs Grid
-                  Row(
-                    children: [
-                      _buildSpecCard(context, 'Total Qty', widget.item.totalQuantity.toString(), Icons.layers),
-                      const SizedBox(width: 16),
-                      _buildSpecCard(context, 'Condition', 'Excellent', Icons.check_circle_outline),
-                    ],
-                  ),
-
-                  const SizedBox(height: 32),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'RESERVATION',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  if (reservations.isNotEmpty) ...[
-                    Text(
-                      'Currently reserved dates:',
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
-                    ),
-                    const SizedBox(height: 8),
-                    ...reservations.map((r) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4.0),
-                          child: Text(
-                            '• ${DateFormat('MMM d, yyyy').format(r.startDate)} - ${DateFormat('MMM d, yyyy').format(r.returnDate)}',
-                            style: TextStyle(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.8)),
-                          ),
-                        )),
-                    const SizedBox(height: 16),
-                  ],
-
-                  Card(
-                    elevation: 0,
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-                    ),
-                    child: ListTile(
-                      leading: Icon(Icons.date_range, color: Theme.of(context).colorScheme.primary),
-                      title: Text(
-                        _selectedDateRange == null
-                            ? 'Select Reservation Dates'
-                            : '${DateFormat('MMM d').format(_selectedDateRange!.start)} - ${DateFormat('MMM d').format(_selectedDateRange!.end)}',
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () async {
-                        final now = DateTime.now();
-                        final picked = await showDateRangePicker(
-                          context: context,
-                          firstDate: now,
-                          lastDate: now.add(const Duration(days: 365)),
-                          initialDateRange: _selectedDateRange,
-                          builder: (context, child) {
-                            return Theme(
-                              data: Theme.of(context).copyWith(
-                                colorScheme: Theme.of(context).colorScheme.copyWith(
-                                      surface: const Color(0xFF15151A),
-                                      onSurface: Colors.white,
-                                    ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(
+                              '\$${widget.item.pricePerDay.toStringAsFixed(2)} / DAY',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
                               ),
-                              child: child!,
-                            );
-                          },
-                        );
-                        if (picked != null) {
-                          setState(() {
-                            _selectedDateRange = picked;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                            ),
+                          ),
+                        ],
                       ),
-                      onPressed: () => _reserveItem(dataService),
-                      child: Text(
-                        'CONFIRM RESERVATION',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Colors.black,
+                      const SizedBox(height: 16),
+                      Text(
+                        widget.item.name,
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Subcategory: ${widget.item.subcategory}',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Specs Table
+                      if (widget.item.specs.isNotEmpty) ...[
+                        Text('TECHNICAL SPECIFICATIONS', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Theme.of(context).colorScheme.outline),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            children: widget.item.specs.entries.map((e) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5))),
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    ),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(e.value),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Base Specs Grid
+                      Row(
+                        children: [
+                          _buildSpecCard(context, 'Total Qty', widget.item.totalQuantity.toString(), Icons.layers),
+                          const SizedBox(width: 16),
+                          _buildSpecCard(context, 'Condition', 'Excellent', Icons.check_circle_outline),
+                        ],
+                      ),
+
+                      const SizedBox(height: 32),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'AVAILABILITY CALENDAR',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Availability Timeline List
+                      SizedBox(
+                        height: 90,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: 30, // Show next 30 days
+                          itemBuilder: (context, index) {
+                            final date = DateTime.now().add(Duration(days: index));
+                            final normalizedDate = DateTime(date.year, date.month, date.day);
+                            final isAvailable = dataService.checkItemAvailability(widget.item.id, normalizedDate, normalizedDate);
+
+                            return Container(
+                              width: 70,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: isAvailable
+                                    ? Theme.of(context).colorScheme.surfaceContainerHighest
+                                    : Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isAvailable
+                                      ? Theme.of(context).colorScheme.outline
+                                      : Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(DateFormat('MMM').format(date), style: const TextStyle(fontSize: 12)),
+                                  Text(date.day.toString(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 4),
+                                  Icon(
+                                    isAvailable ? Icons.check_circle : Icons.block,
+                                    size: 16,
+                                    color: isAvailable ? Colors.green : Theme.of(context).colorScheme.error,
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      Card(
+                        elevation: 0,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+                        ),
+                        child: ListTile(
+                          leading: Icon(Icons.date_range, color: Theme.of(context).colorScheme.primary),
+                          title: Text(
+                            _selectedDateRange == null
+                                ? 'Select Reservation Dates'
+                                : '${DateFormat('MMM d').format(_selectedDateRange!.start)} - ${DateFormat('MMM d').format(_selectedDateRange!.end)}',
+                          ),
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                          onTap: () async {
+                            final now = DateTime.now();
+                            final picked = await showDateRangePicker(
+                              context: context,
+                              firstDate: now,
+                              lastDate: now.add(const Duration(days: 365)),
+                              initialDateRange: _selectedDateRange,
+                            );
+
+                            if (picked != null) {
+                              // Verify the entire range is available
+                              if (dataService.checkItemAvailability(widget.item.id, picked.start, picked.end)) {
+                                setState(() {
+                                  _selectedDateRange = picked;
+                                });
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('One or more dates in the selected range are unavailable.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => _reserveItem(dataService),
+                          child: Text(
+                            'CONFIRM RESERVATION',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
                   ),
-                  const SizedBox(height: 32),
-                ],
+                ),
               ),
             ),
           ],

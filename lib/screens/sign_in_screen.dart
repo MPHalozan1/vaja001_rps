@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/user.dart';
@@ -62,175 +61,172 @@ class _SignInScreenState extends State<SignInScreen> {
     final dataService = Provider.of<DataService>(context);
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0D0D11), Color(0xFF15151A)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            icon: Icon(
+              dataService.themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode,
             ),
+            onPressed: () {
+              dataService.setThemeMode(
+                dataService.themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark,
+              );
+            },
           ),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'NEON RENTALS',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            BoxShadow(
-                              color: Theme.of(context).colorScheme.primary,
-                              blurRadius: 10,
-                            )
-                          ],
-                        ),
-                  ),
-                  const SizedBox(height: 48),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _isLogin ? 'SYSTEM LOGIN' : 'NEW REGISTRATION',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 24),
-                              TextFormField(
-                                controller: _nameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Username',
-                                  prefixIcon: Icon(Icons.person),
-                                ),
-                                validator: (val) =>
-                                    val!.isEmpty ? 'Please enter a name' : null,
-                              ),
-                              if (!_isLogin) ...[
-                                const SizedBox(height: 16),
-                                TextFormField(
-                                  controller: _contactController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Contact Info (Email/Phone)',
-                                    prefixIcon: Icon(Icons.contact_mail),
-                                  ),
-                                  validator: (val) =>
-                                      val!.isEmpty ? 'Please enter contact info' : null,
-                                ),
-                              ],
-                              const SizedBox(height: 32),
-                              SizedBox(
-                                width: double.infinity,
-                                height: 50,
-                                child: FilledButton(
-                                  onPressed: () => _submitAuth(dataService),
-                                  child: Text(_isLogin ? 'ENTER' : 'REGISTER'),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _isLogin = !_isLogin;
-                                  });
-                                },
-                                child: Text(_isLogin
-                                    ? 'Need an account? Register'
-                                    : 'Already have an account? Login'),
-                              ),
-                            ],
-                          ),
-                        ),
+        ],
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'RENTAL PLATFORM',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  GestureDetector(
-                    onTap: () => setState(() => _showDevMode = !_showDevMode),
-                    child: Text(
-                      '// DEV MODE',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.secondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  if (_showDevMode) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Theme.of(context).colorScheme.secondary),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 48),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Form(
+                      key: _formKey,
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          DropdownButton<User>(
-                            isExpanded: true,
-                            value: _selectedDevUser,
-                            hint: const Text('Select a dummy user'),
-                            items: dataService.users.map((User user) {
-                              return DropdownMenuItem<User>(
-                                value: user,
-                                child: Text('${user.name} (${user.role.name})'),
-                              );
-                            }).toList(),
-                            onChanged: (User? newValue) {
-                              setState(() {
-                                _selectedDevUser = newValue;
-                              });
+                          Text(
+                            _isLogin ? 'SYSTEM LOGIN' : 'NEW REGISTRATION',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 24),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Username *',
+                              prefixIcon: Icon(Icons.person),
+                              helperText: 'Enter your account username.',
+                            ),
+                            validator: (val) {
+                              if (val == null || val.isEmpty) {
+                                return 'Please enter a valid username to continue.';
+                              }
+                              return null;
                             },
                           ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              foregroundColor: Theme.of(context).colorScheme.secondary,
-                              side: BorderSide(color: Theme.of(context).colorScheme.secondary),
+                          if (!_isLogin) ...[
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _contactController,
+                              decoration: const InputDecoration(
+                                labelText: 'Contact Info (Email/Phone) *',
+                                prefixIcon: Icon(Icons.contact_mail),
+                                helperText: 'We will use this to contact you about your rentals.',
+                              ),
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'Contact information is required for new accounts.';
+                                }
+                                return null;
+                              },
                             ),
-                            onPressed: _selectedDevUser == null
-                                ? null
-                                : () {
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            MainMenuScreen(user: _selectedDevUser!),
-                                      ),
-                                    );
-                                  },
-                            child: const Text('QUICK LOGIN'),
+                          ],
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: FilledButton(
+                              onPressed: () => _submitAuth(dataService),
+                              child: Text(_isLogin ? 'ENTER' : 'REGISTER'),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _isLogin = !_isLogin;
+                              });
+                            },
+                            child: Text(_isLogin
+                                ? 'Need an account? Register'
+                                : 'Already have an account? Login'),
                           ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
+                ),
+                const SizedBox(height: 48),
+                GestureDetector(
+                  onTap: () => setState(() => _showDevMode = !_showDevMode),
+                  child: Text(
+                    'DEV MODE',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (_showDevMode) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Theme.of(context).colorScheme.outline),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    ),
+                    child: Column(
+                      children: [
+                        DropdownButton<User>(
+                          isExpanded: true,
+                          value: _selectedDevUser,
+                          hint: const Text('Select a dummy user'),
+                          items: dataService.users.map((User user) {
+                            return DropdownMenuItem<User>(
+                              value: user,
+                              child: Text('${user.name} (${user.role.name})'),
+                            );
+                          }).toList(),
+                          onChanged: (User? newValue) {
+                            setState(() {
+                              _selectedDevUser = newValue;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Theme.of(context).colorScheme.primary,
+                            side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          onPressed: _selectedDevUser == null
+                              ? null
+                              : () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          MainMenuScreen(user: _selectedDevUser!),
+                                    ),
+                                  );
+                                },
+                          child: const Text('QUICK LOGIN'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
