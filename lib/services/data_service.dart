@@ -82,7 +82,7 @@ class DataService extends ChangeNotifier {
   // --- Item Management ---
   void addItem(User currentUser, Item item) {
     if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
-      throw Exception('Unauthorized: Customers cannot add items.');
+      throw Exception('Unauthorized: Only Admins or Employees can add items.');
     }
     if (item.totalQuantity < 0) {
       throw Exception('Invalid item: Quantity cannot be negative.');
@@ -96,7 +96,7 @@ class DataService extends ChangeNotifier {
 
   void removeItem(User currentUser, String id) {
     if (currentUser.role != UserRole.admin && currentUser.role != UserRole.employee) {
-      throw Exception('Unauthorized: Customers cannot remove items.');
+      throw Exception('Unauthorized: Only Admins or Employees can remove items.');
     }
     items.removeWhere((item) => item.id == id);
     notifyListeners();
@@ -152,6 +152,12 @@ class DataService extends ChangeNotifier {
       throw Exception('Error: Dates overlap or item not available.');
     }
 
+    // Check if user is actually in system
+    final userExists = users.any((u) => u.id == currentUser.id);
+    if (!userExists) {
+      return 'Error: Unauthorized user.';
+    }
+
     final newId = 'br${borrowRequests.length + 1}';
     borrowRequests.add(BorrowRequest(
       id: newId,
@@ -177,5 +183,24 @@ class DataService extends ChangeNotifier {
 
     bill.status = BillStatus.approved;
     notifyListeners();
+  }
+
+  // --- Bill Management ---
+  void approveBill(User currentUser, String billId) {
+    if (currentUser.role != UserRole.admin) {
+      throw Exception('Unauthorized: Only Admins can approve bills.');
+    }
+
+    final index = bills.indexWhere((b) => b.id == billId);
+    if (index != -1) {
+      if (bills[index].status == BillStatus.pendingAdminApproval) {
+        bills[index].status = BillStatus.approved;
+        notifyListeners();
+      } else {
+        throw Exception('Bill is not pending approval.');
+      }
+    } else {
+      throw Exception('Bill not found.');
+    }
   }
 }

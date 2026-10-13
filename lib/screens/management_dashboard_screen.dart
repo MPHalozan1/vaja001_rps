@@ -40,6 +40,61 @@ class ManagementDashboardScreen extends StatelessWidget {
   }
 }
 
+class _BillsTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final dataService = Provider.of<DataService>(context);
+    final bills = dataService.bills;
+
+    final dashboard = context.findAncestorWidgetOfExactType<ManagementDashboardScreen>();
+    final currentUser = dashboard!.currentUser;
+
+    return Column(
+      children: [
+        Expanded(
+          child: bills.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.receipt_long, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No bills found.',
+                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: bills.length,
+                  itemBuilder: (context, index) {
+                    final bill = bills[index];
+                    return ListTile(
+                      title: Text('Bill \$${bill.amount.toStringAsFixed(2)}'),
+                      subtitle: Text('Status: ${bill.status.name}'),
+                      trailing: bill.status == BillStatus.pendingAdminApproval
+                          ? IconButton(
+                              icon: const Icon(Icons.check, color: Colors.green),
+                              onPressed: () {
+                                try {
+                                  dataService.approveBill(currentUser, bill.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill approved')));
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                }
+                              },
+                            )
+                          : null,
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ItemsTab extends StatelessWidget {
   final User currentUser;
 
