@@ -412,7 +412,10 @@ class _UsersTab extends StatelessWidget {
                               onPressed: () {
                                 if (formKey.currentState!.validate()) {
                                   try {
-                                    dataService.registerNewUser(currentUser, nameController.text, UserRole.employee);
+                                    final parts = nameController.text.split(' ');
+                                    final firstName = parts.first;
+                                    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+                                    dataService.registerNewUser(currentUser, firstName, lastName, UserRole.employee);
                                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Employee added successfully.')));
                                     Navigator.pop(context);
                                   } catch (e) {

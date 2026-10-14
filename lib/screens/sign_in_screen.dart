@@ -13,19 +13,32 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   bool _isLogin = true;
+  bool _isLoading = false;
   bool _showDevMode = false;
   User? _selectedDevUser;
 
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _contactController = TextEditingController();
+  final _loginNameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
 
-  void _submitAuth(DataService dataService) {
+  Future<void> _submitAuth(DataService dataService) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Simulate network delay
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    if (!mounted) return;
+
     if (_isLogin) {
       // Mock Login logic - we'll just try to find the user by name for simplicity
       final user = dataService.users.firstWhere(
-        (u) => u.name.toLowerCase() == _nameController.text.toLowerCase(),
-        orElse: () => User(id: '', name: '', role: UserRole.customer),
+        (u) => u.name.toLowerCase() == _loginNameController.text.toLowerCase(),
+        orElse: () => User(id: '', firstName: '', lastName: '', role: UserRole.customer),
       );
 
       if (user.id.isEmpty) {
@@ -42,8 +55,10 @@ class _SignInScreenState extends State<SignInScreen> {
       // Register logic
       if (_formKey.currentState!.validate()) {
         final newUser = dataService.selfRegisterCustomer(
-          _nameController.text,
-          _contactController.text,
+          _firstNameController.text.trim(),
+          _lastNameController.text.trim(),
+          _phoneController.text.trim(),
+          _addressController.text.trim(),
         );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration successful. Welcome!')),
@@ -54,6 +69,10 @@ class _SignInScreenState extends State<SignInScreen> {
         );
       }
     }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -105,33 +124,74 @@ class _SignInScreenState extends State<SignInScreen> {
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 24),
-                          TextFormField(
-                            controller: _nameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Username *',
-                              prefixIcon: Icon(Icons.person),
-                              helperText: 'Enter your account username.',
-                            ),
-                            validator: (val) {
-                              if (val == null || val.isEmpty) {
-                                return 'Please enter a valid username to continue.';
-                              }
-                              return null;
-                            },
-                          ),
-                          if (!_isLogin) ...[
-                            const SizedBox(height: 16),
+                          if (_isLogin)
                             TextFormField(
-                              controller: _contactController,
+                              controller: _loginNameController,
                               decoration: const InputDecoration(
-                                labelText: 'Contact Info (Email/Phone) *',
-                                prefixIcon: Icon(Icons.contact_mail),
-                                helperText: 'We will use this to contact you about your rentals.',
+                                labelText: 'Username *',
+                                prefixIcon: Icon(Icons.person),
+                                helperText: 'Enter your account username.',
                               ),
                               validator: (val) {
                                 if (val == null || val.isEmpty) {
-                                  return 'Contact information is required for new accounts.';
+                                  return 'Please enter a valid username to continue.';
                                 }
+                                return null;
+                              },
+                            )
+                          else ...[
+                            TextFormField(
+                              controller: _firstNameController,
+                              decoration: const InputDecoration(
+                                labelText: 'First Name *',
+                                prefixIcon: Icon(Icons.person),
+                                helperText: 'Your legal first name.',
+                              ),
+                              validator: (val) {
+                                if (val == null || val.isEmpty) return 'First name is required.';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _lastNameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Last Name *',
+                                prefixIcon: Icon(Icons.person_outline),
+                                helperText: 'Your legal last name.',
+                              ),
+                              validator: (val) {
+                                if (val == null || val.isEmpty) return 'Last name is required.';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _phoneController,
+                              decoration: const InputDecoration(
+                                labelText: 'Phone Number *',
+                                prefixIcon: Icon(Icons.phone),
+                                helperText: 'Numeric characters only.',
+                              ),
+                              keyboardType: TextInputType.phone,
+                              validator: (val) {
+                                if (val == null || val.isEmpty) return 'Phone number is required.';
+                                if (double.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) == null) {
+                                  return 'Please enter a valid numeric phone number.';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _addressController,
+                              decoration: const InputDecoration(
+                                labelText: 'Delivery/Billing Address *',
+                                prefixIcon: Icon(Icons.location_on),
+                                helperText: 'Your full address.',
+                              ),
+                              validator: (val) {
+                                if (val == null || val.isEmpty) return 'Address is required.';
                                 return null;
                               },
                             ),
@@ -141,8 +201,16 @@ class _SignInScreenState extends State<SignInScreen> {
                             width: double.infinity,
                             height: 50,
                             child: FilledButton(
-                              onPressed: () => _submitAuth(dataService),
-                              child: Text(_isLogin ? 'ENTER' : 'REGISTER'),
+                              onPressed: _isLoading ? null : () => _submitAuth(dataService),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(_isLogin ? 'ENTER' : 'REGISTER'),
                             ),
                           ),
                           const SizedBox(height: 16),

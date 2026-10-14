@@ -16,14 +16,18 @@ class CustomerDashboardScreen extends StatefulWidget {
 
 class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _contactController;
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _addressController;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.currentUser.name);
-    _contactController = TextEditingController(text: widget.currentUser.contactInfo);
+    _firstNameController = TextEditingController(text: widget.currentUser.firstName);
+    _lastNameController = TextEditingController(text: widget.currentUser.lastName);
+    _phoneController = TextEditingController(text: widget.currentUser.phoneNumber);
+    _addressController = TextEditingController(text: widget.currentUser.address);
   }
 
   @override
@@ -82,23 +86,46 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                         child: Column(
                           children: [
                             TextFormField(
-                              controller: _nameController,
+                              controller: _firstNameController,
                               decoration: const InputDecoration(
-                                labelText: 'Display Name *',
+                                labelText: 'First Name *',
                                 prefixIcon: Icon(Icons.person),
-                                helperText: 'How you appear to staff.',
                               ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter a display name.' : null,
+                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter your first name.' : null,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
-                              controller: _contactController,
+                              controller: _lastNameController,
                               decoration: const InputDecoration(
-                                labelText: 'Contact Info *',
-                                prefixIcon: Icon(Icons.contact_mail),
-                                helperText: 'Email or phone number for notifications.',
+                                labelText: 'Last Name *',
+                                prefixIcon: Icon(Icons.person_outline),
                               ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter your contact info.' : null,
+                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter your last name.' : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _phoneController,
+                              decoration: const InputDecoration(
+                                labelText: 'Phone Number *',
+                                prefixIcon: Icon(Icons.phone),
+                              ),
+                              keyboardType: TextInputType.phone,
+                              validator: (val) {
+                                if (val == null || val.isEmpty) return 'Phone number is required.';
+                                if (double.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) == null) {
+                                  return 'Please enter a valid numeric phone number.';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _addressController,
+                              decoration: const InputDecoration(
+                                labelText: 'Address *',
+                                prefixIcon: Icon(Icons.location_on),
+                              ),
+                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter your address.' : null,
                             ),
                             const SizedBox(height: 24),
                             SizedBox(
@@ -106,7 +133,13 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                               child: FilledButton(
                                 onPressed: () {
                                   if (_formKey.currentState!.validate()) {
-                                    dataService.updateUserProfile(upToDateUser, _nameController.text, _contactController.text);
+                                    dataService.updateUserProfile(
+                                      upToDateUser,
+                                      _firstNameController.text.trim(),
+                                      _lastNameController.text.trim(),
+                                      _phoneController.text.trim(),
+                                      _addressController.text.trim(),
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully.')));
                                   }
                                 },
@@ -125,9 +158,30 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                 Text('RECENT ACTIVITY', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 if (userRequests.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: Center(child: Text('No recent rentals.', style: TextStyle(color: Colors.grey))),
+                  Padding(
+                    padding: const EdgeInsets.all(48.0),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.history_toggle_off, size: 64, color: Theme.of(context).colorScheme.outline),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No recent rentals',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Browse the catalog to make your first reservation.',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
                   )
                 else
                   ListView.builder(
