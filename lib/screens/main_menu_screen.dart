@@ -35,29 +35,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   List<NavigationDestination> _getNavDestinations() {
     if (widget.user.role == UserRole.customer) {
       return const [
-        NavigationDestination(
-          icon: Icon(Icons.store),
-          label: 'Catalog',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.person),
-          label: 'My Dashboard',
-        ),
+        NavigationDestination(icon: Icon(Icons.store), label: 'Catalog'),
+        NavigationDestination(icon: Icon(Icons.person), label: 'My Dashboard'),
       ];
     } else {
       return const [
-        NavigationDestination(
-          icon: Icon(Icons.dashboard),
-          label: 'Management',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.store),
-          label: 'Catalog',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.receipt_long),
-          label: 'Billing',
-        ),
+        NavigationDestination(icon: Icon(Icons.dashboard), label: 'Management'),
+        NavigationDestination(icon: Icon(Icons.store), label: 'Catalog'),
+        NavigationDestination(icon: Icon(Icons.receipt_long), label: 'Billing'),
       ];
     }
   }
@@ -116,16 +101,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     padding: const EdgeInsets.only(bottom: 24.0),
                     child: IconButton(
                       icon: const Icon(Icons.logout),
-                      onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+                      onPressed: () =>
+                          Navigator.pushReplacementNamed(context, '/'),
                     ),
                   ),
                 ),
               ),
             ),
           if (isWide) const VerticalDivider(thickness: 1, width: 1),
-          Expanded(
-            child: _getDestinations()[_selectedIndex],
-          ),
+          Expanded(child: _getDestinations()[_selectedIndex]),
         ],
       ),
       bottomNavigationBar: isWide

@@ -1,4 +1,4 @@
-import 'hover_scale.dart';
+import '../widgets/hover_scale_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
@@ -20,12 +20,18 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
 
   IconData _getIconForCategory(String category) {
     switch (category) {
-      case 'IT & Computers': return Icons.computer;
-      case 'Photo & Video': return Icons.camera_alt;
-      case 'Tools & Home': return Icons.build;
-      case 'Audio': return Icons.headphones;
-      case 'Gaming': return Icons.videogame_asset;
-      default: return Icons.inventory_2;
+      case 'IT & Computers':
+        return Icons.computer;
+      case 'Photo & Video':
+        return Icons.camera_alt;
+      case 'Tools & Home':
+        return Icons.build;
+      case 'Audio':
+        return Icons.headphones;
+      case 'Gaming':
+        return Icons.videogame_asset;
+      default:
+        return Icons.inventory_2;
     }
   }
 
@@ -36,10 +42,12 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
     final categories = ['All', ...allItems.map((e) => e.category).toSet()];
 
     final filteredItems = allItems.where((item) {
-      final matchesSearch = _searchQuery.isEmpty ||
-                            item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                            item.subcategory.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesCategory = _selectedCategory == 'All' || item.category == _selectedCategory;
+      final matchesSearch =
+          _searchQuery.isEmpty ||
+          item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item.subcategory.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesCategory =
+          _selectedCategory == 'All' || item.category == _selectedCategory;
       return matchesSearch && matchesCategory;
     }).toList();
 
@@ -47,7 +55,10 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CATALOG', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
+        title: const Text(
+          'CATALOG',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2),
+        ),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -63,24 +74,40 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Categories', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(
+                        'Categories',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       ...categories.map((category) {
                         final isSelected = _selectedCategory == category;
                         return ListTile(
-                          title: Text(category, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                          title: Text(
+                            category,
+                            style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
                           selected: isSelected,
                           selectedColor: Theme.of(context).colorScheme.primary,
-                          selectedTileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          onTap: () => setState(() => _selectedCategory = category),
+                          selectedTileColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          onTap: () =>
+                              setState(() => _selectedCategory = category),
                         );
                       }),
                     ],
                   ),
                 ),
-              if (isDesktop)
-                const VerticalDivider(width: 1),
+              if (isDesktop) const VerticalDivider(width: 1),
 
               // Main Content Area
               Expanded(
@@ -97,9 +124,13 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
                             hintText: 'Search items...',
                             leading: const Icon(Icons.search),
                             backgroundColor: WidgetStatePropertyAll(
-                              Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                              Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest
+                                  .withValues(alpha: 0.5),
                             ),
-                            onChanged: (value) => setState(() => _searchQuery = value),
+                            onChanged: (value) =>
+                                setState(() => _searchQuery = value),
                           ),
                         ),
                       ),
@@ -118,12 +149,20 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
                               child: FilterChip(
                                 label: Text(category),
                                 selected: isSelected,
-                                selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                                checkmarkColor: Theme.of(context).colorScheme.primary,
+                                selectedColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.2),
+                                checkmarkColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
                                 side: BorderSide(
-                                  color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.outline,
                                 ),
-                                onSelected: (selected) => setState(() => _selectedCategory = category),
+                                onSelected: (selected) => setState(
+                                  () => _selectedCategory = category,
+                                ),
                               ),
                             );
                           }).toList(),
@@ -139,147 +178,231 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.inbox_outlined, size: 80, color: Theme.of(context).colorScheme.outline),
+                                  Icon(
+                                    Icons.inbox_outlined,
+                                    size: 80,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outline,
+                                  ),
                                   const SizedBox(height: 16),
                                   Text(
                                     'NO ITEMS FOUND',
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.5,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.5,
+                                        ),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Try selecting a different category.',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                 ],
                               ),
                             )
                           : Center(
                               child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 1000),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 1000,
+                                ),
                                 child: GridView.builder(
                                   padding: const EdgeInsets.all(16.0),
-                                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 280,
-                                    childAspectRatio: 0.75,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 16,
-                                  ),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 280,
+                                        childAspectRatio: 0.75,
+                                        crossAxisSpacing: 16,
+                                        mainAxisSpacing: 16,
+                                      ),
                                   itemCount: filteredItems.length,
                                   itemBuilder: (context, index) {
                                     final item = filteredItems[index];
-                                    final isAvailable = dataService.checkItemAvailability(item.id, DateTime.now(), DateTime.now());
+                                    final isAvailable = dataService
+                                        .checkItemAvailability(
+                                          item.id,
+                                          DateTime.now(),
+                                          DateTime.now(),
+                                        );
 
-                                    return HoverScale(
+                                    return HoverScaleWrapper(
                                       child: Card(
                                         clipBehavior: Clip.antiAlias,
                                         child: InkWell(
-                                        onTap: () {
-                                          if (widget.currentUser.role == UserRole.customer) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => ProductDetailScreen(
-                                                  currentUser: widget.currentUser,
-                                                  item: item,
+                                          onTap: () {
+                                            if (widget.currentUser.role ==
+                                                UserRole.customer) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      ProductDetailScreen(
+                                                        currentUser:
+                                                            widget.currentUser,
+                                                        item: item,
+                                                      ),
                                                 ),
-                                              ),
-                                            );
-                                          } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Only customers can reserve items from Catalog.')),
-                                            );
-                                          }
-                                        },
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                                          children: [
-                                            Expanded(
-                                              flex: 3,
-                                              child: Container(
-                                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                                child: Stack(
-                                                  children: [
-                                                    Center(
-                                                      child: Hero(
-                                                        tag: 'item-${item.id}',
-                                                        child: Icon(
-                                                          _getIconForCategory(item.category),
-                                                          size: 64,
-                                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Only customers can reserve items from Catalog.',
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              Expanded(
+                                                flex: 3,
+                                                child: Container(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .surfaceContainerHighest
+                                                      .withValues(alpha: 0.3),
+                                                  child: Stack(
+                                                    children: [
+                                                      Center(
+                                                        child: Hero(
+                                                          tag:
+                                                              'item-${item.id}',
+                                                          child: Icon(
+                                                            _getIconForCategory(
+                                                              item.category,
+                                                            ),
+                                                            size: 64,
+                                                            color:
+                                                                Theme.of(
+                                                                      context,
+                                                                    )
+                                                                    .colorScheme
+                                                                    .primary
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.8,
+                                                                    ),
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                    Positioned(
-                                                      top: 8,
-                                                      right: 8,
-                                                      child: Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                        decoration: BoxDecoration(
-                                                          color: Colors.black.withValues(alpha: 0.7),
-                                                          borderRadius: BorderRadius.circular(12),
-                                                        ),
-                                                        child: Text(
-                                                          '\$${item.pricePerDay}',
-                                                          style: const TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize: 12,
+                                                      Positioned(
+                                                        top: 8,
+                                                        right: 8,
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.black
+                                                                .withValues(
+                                                                  alpha: 0.7,
+                                                                ),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  12,
+                                                                ),
+                                                          ),
+                                                          child: Text(
+                                                            '\$${item.pricePerDay}',
+                                                            style:
+                                                                const TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  fontSize: 12,
+                                                                ),
                                                           ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  ],
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(12.0),
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      item.name,
-                                                      maxLines: 2,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                            fontWeight: FontWeight.bold,
+                                              Expanded(
+                                                flex: 2,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(
+                                                    12.0,
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Text(
+                                                        item.name,
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .titleMedium
+                                                            ?.copyWith(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                      ),
+                                                      Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.circle,
+                                                            size: 10,
+                                                            color: isAvailable
+                                                                ? Colors.green
+                                                                : Colors.red,
                                                           ),
-                                                    ),
-                                                    Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.circle,
-                                                          size: 10,
-                                                          color: isAvailable ? Colors.green : Colors.red,
-                                                        ),
-                                                        const SizedBox(width: 6),
-                                                        Text(
-                                                          isAvailable ? 'AVAILABLE' : 'RESERVED',
-                                                          style: TextStyle(
-                                                            fontSize: 10,
-                                                            letterSpacing: 1,
-                                                            color: isAvailable ? Colors.green : Colors.red,
+                                                          const SizedBox(
+                                                            width: 6,
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
+                                                          Text(
+                                                            isAvailable
+                                                                ? 'AVAILABLE'
+                                                                : 'RESERVED',
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              letterSpacing: 1,
+                                                              color: isAvailable
+                                                                  ? Colors.green
+                                                                  : Colors.red,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ));
+                                    );
                                   },
                                 ),
                               ),

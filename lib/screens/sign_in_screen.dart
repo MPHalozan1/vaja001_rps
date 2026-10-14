@@ -38,13 +38,14 @@ class _SignInScreenState extends State<SignInScreen> {
       // Mock Login logic - we'll just try to find the user by name for simplicity
       final user = dataService.users.firstWhere(
         (u) => u.name.toLowerCase() == _loginNameController.text.toLowerCase(),
-        orElse: () => User(id: '', firstName: '', lastName: '', role: UserRole.customer),
+        orElse: () =>
+            User(id: '', firstName: '', lastName: '', role: UserRole.customer),
       );
 
       if (user.id.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not found.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('User not found.')));
       } else {
         Navigator.pushReplacement(
           context,
@@ -65,7 +66,9 @@ class _SignInScreenState extends State<SignInScreen> {
         );
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MainMenuScreen(user: newUser)),
+          MaterialPageRoute(
+            builder: (context) => MainMenuScreen(user: newUser),
+          ),
         );
       }
     }
@@ -84,11 +87,15 @@ class _SignInScreenState extends State<SignInScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              dataService.themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode,
+              dataService.themeMode == ThemeMode.dark
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
             ),
             onPressed: () {
               dataService.setThemeMode(
-                dataService.themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark,
+                dataService.themeMode == ThemeMode.dark
+                    ? ThemeMode.light
+                    : ThemeMode.dark,
               );
             },
           ),
@@ -105,9 +112,9 @@ class _SignInScreenState extends State<SignInScreen> {
                 Text(
                   'RENTAL PLATFORM',
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
@@ -121,7 +128,8 @@ class _SignInScreenState extends State<SignInScreen> {
                         children: [
                           Text(
                             _isLogin ? 'SYSTEM LOGIN' : 'NEW REGISTRATION',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 24),
                           if (_isLogin)
@@ -148,7 +156,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                 helperText: 'Your legal first name.',
                               ),
                               validator: (val) {
-                                if (val == null || val.isEmpty) return 'First name is required.';
+                                if (val == null || val.isEmpty)
+                                  return 'First name is required.';
                                 return null;
                               },
                             ),
@@ -161,7 +170,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                 helperText: 'Your legal last name.',
                               ),
                               validator: (val) {
-                                if (val == null || val.isEmpty) return 'Last name is required.';
+                                if (val == null || val.isEmpty)
+                                  return 'Last name is required.';
                                 return null;
                               },
                             ),
@@ -175,8 +185,12 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                               keyboardType: TextInputType.phone,
                               validator: (val) {
-                                if (val == null || val.isEmpty) return 'Phone number is required.';
-                                if (double.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) == null) {
+                                if (val == null || val.isEmpty)
+                                  return 'Phone number is required.';
+                                if (double.tryParse(
+                                      val.replaceAll(RegExp(r'[^0-9]'), ''),
+                                    ) ==
+                                    null) {
                                   return 'Please enter a valid numeric phone number.';
                                 }
                                 return null;
@@ -191,7 +205,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                 helperText: 'Your full address.',
                               ),
                               validator: (val) {
-                                if (val == null || val.isEmpty) return 'Address is required.';
+                                if (val == null || val.isEmpty)
+                                  return 'Address is required.';
                                 return null;
                               },
                             ),
@@ -201,7 +216,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             width: double.infinity,
                             height: 50,
                             child: FilledButton(
-                              onPressed: _isLoading ? null : () => _submitAuth(dataService),
+                              onPressed: _isLoading
+                                  ? null
+                                  : () => _submitAuth(dataService),
                               child: _isLoading
                                   ? const SizedBox(
                                       width: 24,
@@ -220,9 +237,11 @@ class _SignInScreenState extends State<SignInScreen> {
                                 _isLogin = !_isLogin;
                               });
                             },
-                            child: Text(_isLogin
-                                ? 'Need an account? Register'
-                                : 'Already have an account? Login'),
+                            child: Text(
+                              _isLogin
+                                  ? 'Need an account? Register'
+                                  : 'Already have an account? Login',
+                            ),
                           ),
                         ],
                       ),
@@ -246,9 +265,13 @@ class _SignInScreenState extends State<SignInScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Theme.of(context).colorScheme.outline),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
                       borderRadius: BorderRadius.circular(8),
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                     ),
                     child: Column(
                       children: [
@@ -271,8 +294,12 @@ class _SignInScreenState extends State<SignInScreen> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            foregroundColor: Theme.of(context).colorScheme.primary,
-                            side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
                           ),
                           onPressed: _selectedDevUser == null
                               ? null
@@ -280,8 +307,9 @@ class _SignInScreenState extends State<SignInScreen> {
                                   Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          MainMenuScreen(user: _selectedDevUser!),
+                                      builder: (context) => MainMenuScreen(
+                                        user: _selectedDevUser!,
+                                      ),
                                     ),
                                   );
                                 },

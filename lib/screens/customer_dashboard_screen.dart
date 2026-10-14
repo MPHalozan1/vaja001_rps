@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/data_service.dart';
 import '../models/user.dart';
 import 'package:intl/intl.dart';
+import '../widgets/notification_bell.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
   final User currentUser;
@@ -11,7 +12,8 @@ class CustomerDashboardScreen extends StatefulWidget {
   const CustomerDashboardScreen({super.key, required this.currentUser});
 
   @override
-  State<CustomerDashboardScreen> createState() => _CustomerDashboardScreenState();
+  State<CustomerDashboardScreen> createState() =>
+      _CustomerDashboardScreenState();
 }
 
 class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
@@ -24,10 +26,18 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _firstNameController = TextEditingController(text: widget.currentUser.firstName);
-    _lastNameController = TextEditingController(text: widget.currentUser.lastName);
-    _phoneController = TextEditingController(text: widget.currentUser.phoneNumber);
-    _addressController = TextEditingController(text: widget.currentUser.address);
+    _firstNameController = TextEditingController(
+      text: widget.currentUser.firstName,
+    );
+    _lastNameController = TextEditingController(
+      text: widget.currentUser.lastName,
+    );
+    _phoneController = TextEditingController(
+      text: widget.currentUser.phoneNumber,
+    );
+    _addressController = TextEditingController(
+      text: widget.currentUser.address,
+    );
   }
 
   @override
@@ -35,10 +45,17 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     final dataService = Provider.of<DataService>(context);
 
     // Find up-to-date user info
-    final upToDateUser = dataService.users.firstWhere((u) => u.id == widget.currentUser.id, orElse: () => widget.currentUser);
+    final upToDateUser = dataService.users.firstWhere(
+      (u) => u.id == widget.currentUser.id,
+      orElse: () => widget.currentUser,
+    );
 
-    final userRequests = dataService.borrowRequests.where((r) => r.userId == upToDateUser.id).toList();
-    final userBills = dataService.bills.where((b) => b.customerId == upToDateUser.id).toList();
+    final userRequests = dataService.borrowRequests
+        .where((r) => r.userId == upToDateUser.id)
+        .toList();
+    final userBills = dataService.bills
+        .where((b) => b.customerId == upToDateUser.id)
+        .toList();
 
     double totalSpent = 0;
     for (var b in userBills) {
@@ -47,7 +64,11 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MY DASHBOARD', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
+        actions: [NotificationBell(currentUser: widget.currentUser)],
+        title: const Text(
+          'MY DASHBOARD',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2),
+        ),
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -66,15 +87,30 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                 // Stats Row
                 Row(
                   children: [
-                    _buildStatCard(context, 'Active Rentals', userRequests.length.toString(), Icons.inventory_2),
+                    _buildStatCard(
+                      context,
+                      'Active Rentals',
+                      userRequests.length.toString(),
+                      Icons.inventory_2,
+                    ),
                     const SizedBox(width: 16),
-                    _buildStatCard(context, 'Total Spent', '\$${totalSpent.toStringAsFixed(2)}', Icons.attach_money),
+                    _buildStatCard(
+                      context,
+                      'Total Spent',
+                      '\$${totalSpent.toStringAsFixed(2)}',
+                      Icons.attach_money,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),
 
                 // Profile Settings
-                Text('PROFILE SETTINGS', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  'PROFILE SETTINGS',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 16),
                 Card(
                   child: Padding(
@@ -91,7 +127,9 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                                 labelText: 'First Name *',
                                 prefixIcon: Icon(Icons.person),
                               ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter your first name.' : null,
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Please enter your first name.'
+                                  : null,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -100,7 +138,9 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                                 labelText: 'Last Name *',
                                 prefixIcon: Icon(Icons.person_outline),
                               ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter your last name.' : null,
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Please enter your last name.'
+                                  : null,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -111,8 +151,12 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                               ),
                               keyboardType: TextInputType.phone,
                               validator: (val) {
-                                if (val == null || val.isEmpty) return 'Phone number is required.';
-                                if (double.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) == null) {
+                                if (val == null || val.isEmpty)
+                                  return 'Phone number is required.';
+                                if (double.tryParse(
+                                      val.replaceAll(RegExp(r'[^0-9]'), ''),
+                                    ) ==
+                                    null) {
                                   return 'Please enter a valid numeric phone number.';
                                 }
                                 return null;
@@ -125,7 +169,9 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                                 labelText: 'Address *',
                                 prefixIcon: Icon(Icons.location_on),
                               ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Please enter your address.' : null,
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Please enter your address.'
+                                  : null,
                             ),
                             const SizedBox(height: 24),
                             SizedBox(
@@ -140,7 +186,13 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                                       _phoneController.text.trim(),
                                       _addressController.text.trim(),
                                     );
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully.')));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Profile updated successfully.',
+                                        ),
+                                      ),
+                                    );
                                   }
                                 },
                                 child: const Text('SAVE CHANGES'),
@@ -155,7 +207,12 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                 const SizedBox(height: 32),
 
                 // Active Rentals List
-                Text('RECENT ACTIVITY', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  'RECENT ACTIVITY',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 16),
                 if (userRequests.isEmpty)
                   Padding(
@@ -163,20 +220,30 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                     child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.history_toggle_off, size: 64, color: Theme.of(context).colorScheme.outline),
+                          Icon(
+                            Icons.history_toggle_off,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'No recent rentals',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Browse the catalog to make your first reservation.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                         ],
@@ -190,13 +257,67 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                     itemCount: userRequests.length,
                     itemBuilder: (context, index) {
                       final req = userRequests[index];
-                      final item = dataService.items.firstWhere((i) => i.id == req.itemId);
+                      final item = dataService.items.firstWhere(
+                        (i) => i.id == req.itemId,
+                      );
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
-                          leading: Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
-                          title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${DateFormat('MMM d, yyyy').format(req.startDate)} - ${DateFormat('MMM d, yyyy').format(req.returnDate)}'),
+                          leading: Icon(
+                            Icons.check_circle,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          title: Text(
+                            item.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '${DateFormat('MMM d, yyyy').format(req.startDate)} - ${DateFormat('MMM d, yyyy').format(req.returnDate)}',
+                          ),
+                          trailing: FilledButton.tonal(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: req.returnDate.add(
+                                  const Duration(days: 1),
+                                ),
+                                firstDate: req.returnDate.add(
+                                  const Duration(days: 1),
+                                ),
+                                lastDate: req.returnDate.add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (picked != null) {
+                                try {
+                                  dataService.extendReservation(
+                                    widget.currentUser,
+                                    req.id,
+                                    picked,
+                                  );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Reservation extended successfully.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(e.toString()),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            child: const Text('Extend Rental'),
+                          ),
                         ),
                       );
                     },
@@ -209,22 +330,45 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon) {
+  Widget _buildStatCard(
+    BuildContext context,
+    String title,
+    String value,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+          ),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 32, color: Theme.of(context).colorScheme.secondary),
+            Icon(
+              icon,
+              size: 32,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
             const SizedBox(height: 16),
-            Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(title, style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),

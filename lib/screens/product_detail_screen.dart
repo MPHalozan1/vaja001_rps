@@ -48,13 +48,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     try {
       if (!_liabilityAccepted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You must accept the liability disclaimer to proceed.')),
+          const SnackBar(
+            content: Text(
+              'You must accept the liability disclaimer to proceed.',
+            ),
+          ),
         );
         return;
       }
       if (_locationController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter intended location of use.')),
+          const SnackBar(
+            content: Text('Please enter intended location of use.'),
+          ),
         );
         return;
       }
@@ -65,9 +71,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _selectedDateRange!.end,
         location: _locationController.text.trim(),
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reservation successful!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Reservation successful!')));
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,12 +89,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.item.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {},
-          )
-        ],
+        actions: [IconButton(icon: const Icon(Icons.share), onPressed: () {})],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -101,7 +102,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 gradient: LinearGradient(
                   colors: [
                     Theme.of(context).colorScheme.surface,
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -139,11 +142,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Text(
                               '\$${widget.item.pricePerDay.toStringAsFixed(2)} / DAY',
@@ -158,46 +170,72 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const SizedBox(height: 16),
                       Text(
                         widget.item.name,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Subcategory: ${widget.item.subcategory}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                       ),
                       const SizedBox(height: 24),
 
                       // Specs Table
                       if (widget.item.specs.isNotEmpty) ...[
-                        Text('TECHNICAL SPECIFICATIONS', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        Text(
+                          'TECHNICAL SPECIFICATIONS',
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                        ),
                         const SizedBox(height: 8),
                         Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: Theme.of(context).colorScheme.outline),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
                             children: widget.item.specs.entries.map((e) {
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
-                                  border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5))),
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outline
+                                          .withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest
+                                      .withValues(alpha: 0.3),
                                 ),
                                 child: Row(
                                   children: [
                                     Expanded(
                                       flex: 2,
-                                      child: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                      child: Text(
+                                        e.key,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(e.value),
-                                    ),
+                                    Expanded(flex: 3, child: Text(e.value)),
                                   ],
                                 ),
                               );
@@ -210,9 +248,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       // Base Specs Grid
                       Row(
                         children: [
-                          _buildSpecCard(context, 'Total Qty', widget.item.totalQuantity.toString(), Icons.layers),
+                          _buildSpecCard(
+                            context,
+                            'Total Qty',
+                            widget.item.totalQuantity.toString(),
+                            Icons.layers,
+                          ),
                           const SizedBox(width: 16),
-                          _buildSpecCard(context, 'Condition', 'Excellent', Icons.check_circle_outline),
+                          _buildSpecCard(
+                            context,
+                            'Condition',
+                            'Excellent',
+                            Icons.check_circle_outline,
+                          ),
                         ],
                       ),
 
@@ -222,9 +270,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Text(
                         'AVAILABILITY CALENDAR',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                            ),
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -235,17 +283,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           scrollDirection: Axis.horizontal,
                           itemCount: 30, // Show next 30 days
                           itemBuilder: (context, index) {
-                            final date = DateTime.now().add(Duration(days: index));
-                            final normalizedDate = DateTime(date.year, date.month, date.day);
-                            final isAvailable = dataService.checkItemAvailability(widget.item.id, normalizedDate, normalizedDate);
+                            final date = DateTime.now().add(
+                              Duration(days: index),
+                            );
+                            final normalizedDate = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                            );
+                            final isAvailable = dataService
+                                .checkItemAvailability(
+                                  widget.item.id,
+                                  normalizedDate,
+                                  normalizedDate,
+                                );
 
                             return Container(
                               width: 70,
                               margin: const EdgeInsets.only(right: 8),
                               decoration: BoxDecoration(
                                 color: isAvailable
-                                    ? Theme.of(context).colorScheme.surfaceContainerHighest
-                                    : Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.5),
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest
+                                    : Theme.of(context)
+                                          .colorScheme
+                                          .errorContainer
+                                          .withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: isAvailable
@@ -256,13 +320,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(DateFormat('MMM').format(date), style: const TextStyle(fontSize: 12)),
-                                  Text(date.day.toString(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                  Text(
+                                    DateFormat('MMM').format(date),
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  Text(
+                                    date.day.toString(),
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   const SizedBox(height: 4),
                                   Icon(
-                                    isAvailable ? Icons.check_circle : Icons.block,
+                                    isAvailable
+                                        ? Icons.check_circle
+                                        : Icons.block,
                                     size: 16,
-                                    color: isAvailable ? Colors.green : Theme.of(context).colorScheme.error,
+                                    color: isAvailable
+                                        ? Colors.green
+                                        : Theme.of(context).colorScheme.error,
                                   ),
                                 ],
                               ),
@@ -275,19 +352,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                       Card(
                         elevation: 0,
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.3),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+                          side: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withValues(alpha: 0.2),
+                          ),
                         ),
                         child: ListTile(
-                          leading: Icon(Icons.date_range, color: Theme.of(context).colorScheme.primary),
+                          leading: Icon(
+                            Icons.date_range,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                           title: Text(
                             _selectedDateRange == null
                                 ? 'Select Reservation Dates'
                                 : '${DateFormat('MMM d').format(_selectedDateRange!.start)} - ${DateFormat('MMM d').format(_selectedDateRange!.end)}',
                           ),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
                           onTap: () async {
                             final now = DateTime.now();
                             final picked = await showDateRangePicker(
@@ -299,7 +389,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                             if (picked != null) {
                               // Verify the entire range is available
-                              if (dataService.checkItemAvailability(widget.item.id, picked.start, picked.end)) {
+                              if (dataService.checkItemAvailability(
+                                widget.item.id,
+                                picked.start,
+                                picked.end,
+                              )) {
                                 setState(() {
                                   _selectedDateRange = picked;
                                 });
@@ -307,7 +401,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('One or more dates in the selected range are unavailable.'),
+                                      content: Text(
+                                        'One or more dates in the selected range are unavailable.',
+                                      ),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -331,7 +427,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           onPressed: () => _reserveItem(dataService),
                           child: Text(
                             'CONFIRM RESERVATION',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -350,32 +447,45 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildSpecCard(BuildContext context, String label, String value, IconData icon) {
+  Widget _buildSpecCard(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1)),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: Theme.of(context).colorScheme.secondary, size: 24),
+            Icon(
+              icon,
+              color: Theme.of(context).colorScheme.secondary,
+              size: 24,
+            ),
             const SizedBox(height: 12),
             Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),
