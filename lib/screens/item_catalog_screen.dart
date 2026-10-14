@@ -1,295 +1,651 @@
-import 'hover_scale.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import '../models/item.dart';
 import '../services/data_service.dart';
-import '../models/user.dart';
+import '../widgets/hover_scale_wrapper.dart';
 import 'product_detail_screen.dart';
 
+/// Katalog opreme (Store Page) s čistim dizajnom, filtri, priljubljenimi izdelki (Favorites)
+/// in hitro oddajo Ticketa s podporo za promo kode (npr. RPS10).
 class ItemCatalogScreen extends StatefulWidget {
-  final User currentUser;
-
-  const ItemCatalogScreen({super.key, required this.currentUser});
+  const ItemCatalogScreen({super.key});
 
   @override
   State<ItemCatalogScreen> createState() => _ItemCatalogScreenState();
 }
 
 class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
+  final _dataService = DataService.instance;
   String _searchQuery = '';
   String _selectedCategory = 'All';
+  bool _onlyAvailable = false;
+  bool _onlyFavorites = false;
+  String _sortBy = 'popular';
 
-  IconData _getIconForCategory(String category) {
-    switch (category) {
-      case 'IT & Computers': return Icons.computer;
-      case 'Photo & Video': return Icons.camera_alt;
-      case 'Tools & Home': return Icons.build;
-      case 'Audio': return Icons.headphones;
-      case 'Gaming': return Icons.videogame_asset;
-      default: return Icons.inventory_2;
+  List<Item> _getFilteredItems() {
+    var list = _dataService.items.where((item) {
+      final matchesCategory =
+          _selectedCategory == 'All' || item.category == _selectedCategory;
+      final matchesAvailability = !_onlyAvailable || item.isAvailable;
+      final matchesFavorites =
+          !_onlyFavorites || _dataService.isFavorite(item.id);
+      final q = _searchQuery.trim().toLowerCase();
+      final matchesSearch = q.isEmpty ||
+          item.name.toLowerCase().contains(q) ||
+          item.description.toLowerCase().contains(q) ||
+          item.category.toLowerCase().contains(q);
+      return matchesCategory &&
+          matchesAvailability &&
+          matchesFavorites &&
+          matchesSearch;
+    }).toList();
+
+    switch (_sortBy) {
+      case 'price_asc':
+        list.sort((a, b) => a.dailyRate.compareTo(b.dailyRate));
+        break;
+      case 'price_desc':
+        list.sort((a, b) => b.dailyRate.compareTo(a.dailyRate));
+        break;
+      case 'name':
+        list.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case 'popular':
+      default:
+        list.sort(
+            (a, b) => b.totalRentalsCount.compareTo(a.totalRentalsCount));
+        break;
     }
+    return list;
   }
 
   @override
   Widget build(BuildContext context) {
-    final dataService = Provider.of<DataService>(context);
-    final allItems = dataService.items;
-    final categories = ['All', ...allItems.map((e) => e.category).toSet()];
+    final cs = Theme.of(context).colorScheme;
 
-    final filteredItems = allItems.where((item) {
-      final matchesSearch = _searchQuery.isEmpty ||
-                            item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                            item.subcategory.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesCategory = _selectedCategory == 'All' || item.category == _selectedCategory;
-      return matchesSearch && matchesCategory;
-    }).toList();
+    return ListenableBuilder(
+      listenable: _dataService,
+      builder: (context, _) {
+        final filteredItems = _getFilteredItems();
+        final categories = _dataService.categories;
 
-    final bool isDesktop = MediaQuery.of(context).size.width >= 800;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('CATALOG', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Sticky Sidebar for Desktop
-              if (isDesktop)
-                Container(
-                  width: 250,
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Categories', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      ...categories.map((category) {
-                        final isSelected = _selectedCategory == category;
-                        return ListTile(
-                          title: Text(category, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                          selected: isSelected,
-                          selectedColor: Theme.of(context).colorScheme.primary,
-                          selectedTileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          onTap: () => setState(() => _selectedCategory = category),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-              if (isDesktop)
-                const VerticalDivider(width: 1),
-
-              // Main Content Area
-              Expanded(
+        return CustomScrollView(
+          slivers: [
+            // 1. Zgornja nadzorna plošča trgovine (Search, Filters, Sort)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Search Bar
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 800),
-                          child: SearchBar(
-                            hintText: 'Search items...',
-                            leading: const Icon(Icons.search),
-                            backgroundColor: WidgetStatePropertyAll(
-                              Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minWidth: 260,
+                            maxWidth: 420,
+                          ),
+                          child: TextField(
+                            onChanged: (v) => setState(() => _searchQuery = v),
+                            decoration: InputDecoration(
+                              hintText:
+                                  'Search cameras, drones, lighting, specs...',
+                              prefixIcon: const Icon(Icons.search_rounded),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      onPressed: () =>
+                                          setState(() => _searchQuery = ''),
+                                      icon: const Icon(Icons.clear_rounded),
+                                    )
+                                  : null,
                             ),
-                            onChanged: (value) => setState(() => _searchQuery = value),
                           ),
                         ),
-                      ),
-                    ),
-
-                    // Scrollable Chips for Mobile
-                    if (!isDesktop) ...[
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: categories.map((category) {
-                            final isSelected = _selectedCategory == category;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: FilterChip(
-                                label: Text(category),
-                                selected: isSelected,
-                                selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                                checkmarkColor: Theme.of(context).colorScheme.primary,
-                                side: BorderSide(
-                                  color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
-                                ),
-                                onSelected: (selected) => setState(() => _selectedCategory = category),
-                              ),
-                            );
-                          }).toList(),
+                        FilterChip(
+                          label: const Text('In Stock Only'),
+                          selected: _onlyAvailable,
+                          onSelected: (v) =>
+                              setState(() => _onlyAvailable = v),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Product Grid
-                    Expanded(
-                      child: filteredItems.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.inbox_outlined, size: 80, color: Theme.of(context).colorScheme.outline),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'NO ITEMS FOUND',
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Try selecting a different category.',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
+                        FilterChip(
+                          avatar: Icon(
+                            _onlyFavorites
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            size: 16,
+                            color: _onlyFavorites
+                                ? const Color(0xFFE11D48)
+                                : cs.onSurfaceVariant,
+                          ),
+                          label: const Text('Saved'),
+                          selected: _onlyFavorites,
+                          onSelected: (v) =>
+                              setState(() => _onlyFavorites = v),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: cs.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: cs.outlineVariant),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _sortBy,
+                              style: TextStyle(
+                                color: cs.onSurface,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
-                            )
-                          : Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 1000),
-                                child: GridView.builder(
-                                  padding: const EdgeInsets.all(16.0),
-                                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 280,
-                                    childAspectRatio: 0.75,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 16,
-                                  ),
-                                  itemCount: filteredItems.length,
-                                  itemBuilder: (context, index) {
-                                    final item = filteredItems[index];
-                                    final isAvailable = dataService.checkItemAvailability(item.id, DateTime.now(), DateTime.now());
-
-                                    return HoverScale(
-                                      child: Card(
-                                        clipBehavior: Clip.antiAlias,
-                                        child: InkWell(
-                                        onTap: () {
-                                          if (widget.currentUser.role == UserRole.customer) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => ProductDetailScreen(
-                                                  currentUser: widget.currentUser,
-                                                  item: item,
-                                                ),
-                                              ),
-                                            );
-                                          } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Only customers can reserve items from Catalog.')),
-                                            );
-                                          }
-                                        },
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                                          children: [
-                                            Expanded(
-                                              flex: 3,
-                                              child: Container(
-                                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                                child: Stack(
-                                                  children: [
-                                                    Center(
-                                                      child: Hero(
-                                                        tag: 'item-${item.id}',
-                                                        child: Icon(
-                                                          _getIconForCategory(item.category),
-                                                          size: 64,
-                                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Positioned(
-                                                      top: 8,
-                                                      right: 8,
-                                                      child: Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                        decoration: BoxDecoration(
-                                                          color: Colors.black.withValues(alpha: 0.7),
-                                                          borderRadius: BorderRadius.circular(12),
-                                                        ),
-                                                        child: Text(
-                                                          '\$${item.pricePerDay}',
-                                                          style: const TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize: 12,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(12.0),
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      item.name,
-                                                      maxLines: 2,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                            fontWeight: FontWeight.bold,
-                                                          ),
-                                                    ),
-                                                    Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.circle,
-                                                          size: 10,
-                                                          color: isAvailable ? Colors.green : Colors.red,
-                                                        ),
-                                                        const SizedBox(width: 6),
-                                                        Text(
-                                                          isAvailable ? 'AVAILABLE' : 'RESERVED',
-                                                          style: TextStyle(
-                                                            fontSize: 10,
-                                                            letterSpacing: 1,
-                                                            color: isAvailable ? Colors.green : Colors.red,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ));
-                                  },
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'popular',
+                                  child: Text('Sort: Most Popular'),
                                 ),
-                              ),
+                                DropdownMenuItem(
+                                  value: 'price_asc',
+                                  child: Text('Sort: Daily Rate (Low → High)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'price_desc',
+                                  child: Text('Sort: Daily Rate (High → Low)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'name',
+                                  child: Text('Sort: Alphabetical'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _sortBy = val);
+                                }
+                              },
                             ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Kategorije
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: categories.map((category) {
+                          final isSelected = _selectedCategory == category;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(category),
+                              selected: isSelected,
+                              onSelected: (_) =>
+                                  setState(() => _selectedCategory = category),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+
+            // 2. Odzivna mreža kartic opreme
+            if (filteredItems.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(
+                    'No equipment matches your current filter criteria.',
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 390,
+                    mainAxisExtent: 345,
+                    crossAxisSpacing: 18,
+                    mainAxisSpacing: 18,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = filteredItems[index];
+                      return _StoreItemCard(
+                        item: item,
+                        isFavorite: _dataService.isFavorite(item.id),
+                        onToggleFavorite: () =>
+                            _dataService.toggleFavorite(item.id),
+                        onOpenDetails: () {
+                          // Gladka animirana navigacija s Hero prehodom
+                          Navigator.of(context).push(
+                            PageRouteBuilder(
+                              transitionDuration:
+                                  const Duration(milliseconds: 320),
+                              pageBuilder: (_, animation, _) => FadeTransition(
+                                opacity: animation,
+                                child: ProductDetailScreen(itemId: item.id),
+                              ),
+                            ),
+                          );
+                        },
+                        onQuickReserve: () =>
+                            _showQuickReservationDialog(context, item),
+                      );
+                    },
+                    childCount: filteredItems.length,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Modalno okno za hitro oddajo Ticketa s podporo za promo kodo
+  void _showQuickReservationDialog(BuildContext context, Item item) {
+    int quantity = 1;
+    int days = 3;
+    final noteController = TextEditingController();
+    final promoController = TextEditingController();
+    final cs = Theme.of(context).colorScheme;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final discount =
+                _dataService.evaluatePromoCode(promoController.text);
+            final gross = item.dailyRate * days * quantity;
+            final total = gross * ((100 - discount) / 100);
+
+            return AlertDialog(
+              backgroundColor: cs.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: cs.outlineVariant),
+              ),
+              title: Text(
+                'Reserve ${item.name}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+              ),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Submits a reservation ticket to the Employee / Admin queue.',
+                        style: TextStyle(
+                          color: cs.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Quantity:'),
+                          Row(
+                            children: [
+                              IconButton(
+                                onPressed: quantity > 1
+                                    ? () => setDialogState(() => quantity--)
+                                    : null,
+                                icon: const Icon(Icons.remove_circle_outline),
+                              ),
+                              Text(
+                                '$quantity / ${item.availableStock}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: quantity < item.availableStock
+                                    ? () => setDialogState(() => quantity++)
+                                    : null,
+                                icon: const Icon(Icons.add_circle_outline),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Rental Duration (Days):'),
+                          DropdownButton<int>(
+                            value: days,
+                            items: [1, 2, 3, 5, 7, 10, 14]
+                                .map((d) => DropdownMenuItem(
+                                      value: d,
+                                      child: Text('$d days'),
+                                    ))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) setDialogState(() => days = v);
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: promoController,
+                        onChanged: (_) => setDialogState(() {}),
+                        decoration: InputDecoration(
+                          labelText: 'Promo Code (Try: RPS10 or STUDENT20)',
+                          prefixIcon: const Icon(Icons.local_offer_outlined),
+                          suffixText:
+                              discount > 0 ? '-${discount.toInt()}%' : null,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: noteController,
+                        decoration: const InputDecoration(
+                          labelText: 'Project / Notes for Staff (Optional)',
+                          prefixIcon: Icon(Icons.notes_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: cs.outlineVariant),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              discount > 0
+                                  ? 'Total (${discount.toInt()}% off):'
+                                  : 'Estimated Total:',
+                              style: TextStyle(color: cs.onSurfaceVariant),
+                            ),
+                            Text(
+                              '€${total.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w800,
+                                color: cs.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton.icon(
+                  onPressed: () {
+                    try {
+                      final now = DateTime.now();
+                      final ticket = _dataService.createBorrowRequest(
+                        itemId: item.id,
+                        quantity: quantity,
+                        startDate: now,
+                        endDate: now.add(Duration(days: days)),
+                        customNote: noteController.text,
+                        promoCode: promoController.text,
+                      );
+                      Navigator.of(ctx).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          content: Text(
+                            'Ticket #${ticket.id} created! An Employee can now approve it.',
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString())),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.confirmation_number_rounded, size: 18),
+                  label: const Text('Submit Ticket'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _StoreItemCard extends StatelessWidget {
+  final Item item;
+  final bool isFavorite;
+  final VoidCallback onToggleFavorite;
+  final VoidCallback onOpenDetails;
+  final VoidCallback onQuickReserve;
+
+  const _StoreItemCard({
+    required this.item,
+    required this.isFavorite,
+    required this.onToggleFavorite,
+    required this.onOpenDetails,
+    required this.onQuickReserve,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final stockColor = item.underMaintenance
+        ? const Color(0xFFF59E0B)
+        : item.isAvailable
+            ? const Color(0xFF10B981)
+            : const Color(0xFFEF4444);
+
+    return HoverScaleWrapper(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: cs.outlineVariant),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Zgornja vrstica: Hero ikona + Kategorija + Priljubljeno
+            Row(
+              children: [
+                Hero(
+                  tag: 'item_icon_${item.id}',
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: cs.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      item.icon,
+                      color: cs.primary,
+                      size: 26,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.category.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.7,
+                          color: cs.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Save to Favorites',
+                  onPressed: onToggleFavorite,
+                  icon: Icon(
+                    isFavorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: isFavorite
+                        ? const Color(0xFFE11D48)
+                        : cs.onSurfaceVariant,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              item.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Hitre tehnične specifikacije
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: item.specs.entries.take(2).map((entry) {
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${entry.key}: ${entry.value}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const Spacer(),
+            Divider(color: cs.outlineVariant, height: 22),
+            // Cena in status zaloge
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '€${item.dailyRate.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' / day',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: stockColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    item.underMaintenance
+                        ? 'In Service'
+                        : item.isAvailable
+                            ? '${item.availableStock}/${item.totalStock} Available'
+                            : 'Out of Stock',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: stockColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // Akcijska gumba
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onOpenDetails,
+                    child: const Text('Specs & Info'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: item.isAvailable ? onQuickReserve : null,
+                    icon: const Icon(Icons.add_task_rounded, size: 17),
+                    label: const Text('Reserve'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

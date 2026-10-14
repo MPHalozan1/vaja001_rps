@@ -1,162 +1,212 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../models/user.dart';
 import '../models/bill.dart';
 import '../services/data_service.dart';
 
-class BillingDashboardScreen extends StatefulWidget {
-  final User currentUser;
-  const BillingDashboardScreen({super.key, required this.currentUser});
-
-  @override
-  State<BillingDashboardScreen> createState() => _BillingDashboardScreenState();
-}
-
-class _BillingDashboardScreenState extends State<BillingDashboardScreen> {
-  BillStatus? _filterStatus;
+/// Zaslon za račune in plačila.
+/// Stranke tukaj plačajo račune, Employee potrjuje prejeta plačila, Admin pa ima dodatne pravice za popuste in odpis.
+class BillingDashboardScreen extends StatelessWidget {
+  const BillingDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final dataService = Provider.of<DataService>(context);
-    final bills = dataService.bills.where((b) => _filterStatus == null || b.status == _filterStatus).toList();
+    final data = DataService.instance;
+    final cs = Theme.of(context).colorScheme;
 
-    double totalRevenue = dataService.bills.where((b) => b.status == BillStatus.paid).fold(0, (sum, item) => sum + item.amount);
+    return ListenableBuilder(
+      listenable: data,
+      builder: (context, _) {
+        final user = data.currentUser;
+        if (user == null) return const SizedBox.shrink();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Billing & Invoicing'),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+        final displayedBills =
+            user.isStaff ? data.bills : data.getBillsForUser(user.id);
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Card(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
+              Text(
+                user.isStaff
+                    ? 'All Customer Invoices & Payment Approvals'
+                    : 'My Invoices & Payments',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                user.isAdmin
+                    ? 'Admin Mode: Verify payments to update ROI graphs, or apply executive discounts/waivers.'
+                    : user.isEmployee
+                        ? 'Employee Mode: Verify customer invoice payments.'
+                        : 'Pay your approved rental invoices below.',
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              if (displayedBills.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(36),
+                  decoration: BoxDecoration(
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: cs.outlineVariant),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'No invoices generated yet. Invoices are automatically created when an Employee approves a ticket.',
+                      style: TextStyle(color: cs.onSurfaceVariant),
+                    ),
+                  ),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: displayedBills.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final bill = displayedBills[index];
+                    final statusColor = switch (bill.status) {
+                      BillStatus.paid => const Color(0xFF10B981),
+                      BillStatus.pendingApproval => const Color(0xFFF59E0B),
+                      BillStatus.unpaid => cs.primary,
+                      BillStatus.overdue => const Color(0xFFEF4444),
+                      BillStatus.waived => const Color(0xFF64748B),
+                    };
+
+                    final canModify = bill.status != BillStatus.paid &&
+                        bill.status != BillStatus.waived;
+
+                    return Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: cs.outlineVariant),
+                      ),
+                      child: Wrap(
+                        spacing: 16,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Total Revenue (Paid)'),
-                              Text(
-                                '\$${totalRevenue.toStringAsFixed(2)}',
-                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${bill.id} (Ticket #${bill.borrowRequestId})',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: cs.primary,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          statusColor.withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      bill.statusLabel,
+                                      style: TextStyle(
+                                        color: statusColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${bill.itemName} • Customer: ${bill.userName}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                              if (bill.penaltyFee > 0) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Includes €${bill.penaltyFee.toStringAsFixed(2)} late/damage inspection fee',
+                                  style: const TextStyle(
+                                    color: Color(0xFFEF4444),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Row(
-                  children: [
-                    DropdownButton<BillStatus?>(
-                      value: _filterStatus,
-                      hint: const Text('Filter by Status'),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('All Bills')),
-                        ...BillStatus.values.map((s) => DropdownMenuItem(value: s, child: Text(s.name))),
-                      ],
-                      onChanged: (val) {
-                        setState(() => _filterStatus = val);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: bills.length,
-                  itemBuilder: (context, index) {
-                    final bill = bills[index];
-                    String customerName = 'Unknown';
-                    try { customerName = dataService.users.firstWhere((u) => u.id == bill.customerId).name; } catch (_) {}
-                    String itemName = 'Unknown';
-                    String dates = '';
-                    if (bill.borrowRequestId != null) {
-                      try {
-                        final req = dataService.borrowRequests.firstWhere((r) => r.id == bill.borrowRequestId);
-                        final item = dataService.items.firstWhere((i) => i.id == req.itemId);
-                        itemName = item.name;
-                        dates = '${req.startDate.toString().split(' ')[0]} to ${req.returnDate.toString().split(' ')[0]}';
-                      } catch (_) {}
-                    }
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Bill ID: ${bill.id}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                Text('\$${bill.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '€${bill.totalAmount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              // Gumb za stranko
+                              if (!user.isStaff &&
+                                  (bill.status == BillStatus.unpaid ||
+                                      bill.status == BillStatus.overdue))
+                                FilledButton.icon(
+                                  onPressed: () => data
+                                      .requestBillPaymentApproval(bill.id),
+                                  icon: const Icon(Icons.payment_rounded,
+                                      size: 18),
+                                  label: const Text('Pay Invoice'),
+                                ),
+                              // Ekskluzivne akcije samo za Admina (-20% ali Waive)
+                              if (user.isAdmin && canModify) ...[
+                                OutlinedButton(
+                                  onPressed: () =>
+                                      data.applyAdminDiscountOrWaive(
+                                    bill.id,
+                                    waiveCompletely: false,
+                                  ),
+                                  child: const Text('Admin -20%'),
+                                ),
+                                const SizedBox(width: 8),
                               ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Customer: $customerName'),
-                            if (bill.borrowRequestId != null) ...[
-                              Text('Item: $itemName'),
-                              Text('Dates: $dates'),
+                              // Akcija za Employee in Admin (potrditev plačila)
+                              if (user.isStaff && canModify)
+                                FilledButton.icon(
+                                  onPressed: () =>
+                                      data.approveBillPayment(bill.id),
+                                  icon: const Icon(Icons.check_circle_rounded,
+                                      size: 18),
+                                  label: const Text('Verify Paid'),
+                                ),
                             ],
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Chip(
-                                  label: Text(bill.status.name),
-                                  backgroundColor: bill.status == BillStatus.unpaid ? Colors.red.withValues(alpha: 0.2) : null,
-                                ),
-                                Row(
-                                  children: [
-                                    if (bill.status == BillStatus.pendingAdminApproval)
-                                      FilledButton.tonal(
-                                        onPressed: () {
-                                          try {
-                                            final msg = dataService.approveEmployeeBill(widget.currentUser, bill.id);
-                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-                                          } catch (e) {
-                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
-                                          }
-                                        },
-                                        child: const Text('Approve'),
-                                      )
-                                    else if (bill.status == BillStatus.approved || bill.status == BillStatus.unpaid)
-                                      FilledButton.tonal(
-                                        onPressed: () {
-                                          setState(() {
-                                            bill.status = BillStatus.paid;
-                                          });
-                                        },
-                                        child: const Text('Mark Paid'),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     );
                   },
                 ),
-              ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -1,385 +1,388 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../services/data_service.dart';
-import '../models/user.dart';
-import '../models/item.dart';
-import 'package:intl/intl.dart';
 
+/// Zaslon s podrobnostmi o opremi, Hero animacijo in konfiguratorjem za rezervacijo.
 class ProductDetailScreen extends StatefulWidget {
-  final User currentUser;
-  final Item item;
+  final String itemId;
 
-  const ProductDetailScreen({
-    super.key,
-    required this.currentUser,
-    required this.item,
-  });
+  const ProductDetailScreen({super.key, required this.itemId});
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  DateTimeRange? _selectedDateRange;
-  final TextEditingController _locationController = TextEditingController();
-  bool _liabilityAccepted = false;
+  final _dataService = DataService.instance;
+  int _quantity = 1;
+  DateTimeRange _dateRange = DateTimeRange(
+    start: DateTime.now(),
+    end: DateTime.now().add(const Duration(days: 3)),
+  );
+  final _noteController = TextEditingController();
+  final _promoController = TextEditingController();
 
-  IconData _getIconForCategory(String category) {
-    switch (category) {
-      case 'IT':
-        return Icons.computer;
-      case 'Household':
-        return Icons.home;
-      case 'Audio/Video':
-        return Icons.videocam;
-      default:
-        return Icons.inventory_2;
-    }
+  @override
+  void dispose() {
+    _noteController.dispose();
+    _promoController.dispose();
+    super.dispose();
   }
 
-  void _reserveItem(DataService dataService) {
-    if (_selectedDateRange == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a date range.')),
-      );
-      return;
-    }
-
-    try {
-      if (!_liabilityAccepted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You must accept the liability disclaimer to proceed.')),
-        );
-        return;
-      }
-      if (_locationController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter intended location of use.')),
-        );
-        return;
-      }
-      dataService.processItemReservation(
-        widget.currentUser,
-        widget.item.id,
-        _selectedDateRange!.start,
-        _selectedDateRange!.end,
-        location: _locationController.text.trim(),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reservation successful!')),
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+      initialDateRange: _dateRange,
+    );
+    if (picked != null) {
+      setState(() => _dateRange = picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final dataService = Provider.of<DataService>(context);
+    final cs = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.item.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {},
-          )
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Hero Image Area
-            Container(
-              height: 300,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.surface,
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: Center(
-                child: Hero(
-                  tag: 'item-${widget.item.id}',
-                  child: Icon(
-                    _getIconForCategory(widget.item.category),
-                    size: 150,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
-            ),
+    return ListenableBuilder(
+      listenable: _dataService,
+      builder: (context, _) {
+        final item = _dataService.getItemById(widget.itemId);
+        if (item == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Item Not Found')),
+            body: const Center(child: Text('This item was removed.')),
+          );
+        }
 
-            Center(
+        final durationDays = _dateRange.duration.inDays <= 0
+            ? 1
+            : _dateRange.duration.inDays;
+        final discount =
+            _dataService.evaluatePromoCode(_promoController.text);
+        final gross = item.dailyRate * durationDays * _quantity;
+        final totalCost = gross * ((100 - discount) / 100);
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(item.name),
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                constraints: const BoxConstraints(maxWidth: 920),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Kartica z informacijami in specifikacijami
+                    Container(
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: cs.outlineVariant),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            widget.item.category.toUpperCase(),
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.secondary,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
-                            ),
-                            child: Text(
-                              '\$${widget.item.pricePerDay.toStringAsFixed(2)} / DAY',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        widget.item.name,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Subcategory: ${widget.item.subcategory}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Specs Table
-                      if (widget.item.specs.isNotEmpty) ...[
-                        Text('TECHNICAL SPECIFICATIONS', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                        const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Theme.of(context).colorScheme.outline),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            children: widget.item.specs.entries.map((e) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                decoration: BoxDecoration(
-                                  border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5))),
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          Row(
+                            children: [
+                              Hero(
+                                tag: 'item_icon_${item.id}',
+                                child: Container(
+                                  padding: const EdgeInsets.all(18),
+                                  decoration: BoxDecoration(
+                                    color: cs.primary.withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Icon(
+                                    item.icon,
+                                    size: 40,
+                                    color: cs.primary,
+                                  ),
                                 ),
-                                child: Row(
+                              ),
+                              const SizedBox(width: 18),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Text(
+                                      item.category.toUpperCase(),
+                                      style: TextStyle(
+                                        color: cs.primary,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 12,
+                                      ),
                                     ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(e.value),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      item.name,
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: cs.onSurface,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '€${item.dailyRate.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w800,
+                                      color: cs.primary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'per day',
+                                    style: TextStyle(
+                                      color: cs.onSurfaceVariant,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            item.description,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: cs.onSurfaceVariant,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'TECHNICAL SPECIFICATIONS',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: item.specs.entries.map((e) {
+                              return Container(
+                                width: 200,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: cs.surfaceContainerHighest
+                                      .withValues(alpha: 0.45),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: cs.outlineVariant),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      e.key,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      e.value,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: cs.onSurface,
+                                      ),
                                     ),
                                   ],
                                 ),
                               );
                             }).toList(),
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // Base Specs Grid
-                      Row(
-                        children: [
-                          _buildSpecCard(context, 'Total Qty', widget.item.totalQuantity.toString(), Icons.layers),
-                          const SizedBox(width: 16),
-                          _buildSpecCard(context, 'Condition', 'Excellent', Icons.check_circle_outline),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 24),
 
-                      const SizedBox(height: 32),
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      Text(
-                        'AVAILABILITY CALENDAR',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                            ),
+                    // 2. Konfigurator za oddajo novega Ticketa
+                    Container(
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: cs.outlineVariant),
                       ),
-                      const SizedBox(height: 16),
-
-                      // Availability Timeline List
-                      SizedBox(
-                        height: 90,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: 30, // Show next 30 days
-                          itemBuilder: (context, index) {
-                            final date = DateTime.now().add(Duration(days: index));
-                            final normalizedDate = DateTime(date.year, date.month, date.day);
-                            final isAvailable = dataService.checkItemAvailability(widget.item.id, normalizedDate, normalizedDate);
-
-                            return Container(
-                              width: 70,
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                color: isAvailable
-                                    ? Theme.of(context).colorScheme.surfaceContainerHighest
-                                    : Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isAvailable
-                                      ? Theme.of(context).colorScheme.outline
-                                      : Theme.of(context).colorScheme.error,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Create Reservation Ticket',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Select your dates and quantity. Once submitted, an Employee or Admin will review and approve your ticket.',
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: _pickDateRange,
+                                icon: const Icon(Icons.date_range_rounded),
+                                label: Text(
+                                  '${_formatDate(_dateRange.start)} → ${_formatDate(_dateRange.end)} ($durationDays days)',
                                 ),
                               ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(DateFormat('MMM').format(date), style: const TextStyle(fontSize: 12)),
-                                  Text(date.day.toString(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 4),
-                                  Icon(
-                                    isAvailable ? Icons.check_circle : Icons.block,
-                                    size: 16,
-                                    color: isAvailable ? Colors.green : Theme.of(context).colorScheme.error,
+                                  const Text('Units: '),
+                                  IconButton(
+                                    onPressed: _quantity > 1
+                                        ? () => setState(() => _quantity--)
+                                        : null,
+                                    icon: const Icon(
+                                        Icons.remove_circle_outline_rounded),
+                                  ),
+                                  Text(
+                                    '$_quantity / ${item.availableStock}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: _quantity < item.availableStock
+                                        ? () => setState(() => _quantity++)
+                                        : null,
+                                    icon: const Icon(
+                                        Icons.add_circle_outline_rounded),
                                   ),
                                 ],
                               ),
-                            );
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      Card(
-                        elevation: 0,
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-                        ),
-                        child: ListTile(
-                          leading: Icon(Icons.date_range, color: Theme.of(context).colorScheme.primary),
-                          title: Text(
-                            _selectedDateRange == null
-                                ? 'Select Reservation Dates'
-                                : '${DateFormat('MMM d').format(_selectedDateRange!.start)} - ${DateFormat('MMM d').format(_selectedDateRange!.end)}',
+                            ],
                           ),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () async {
-                            final now = DateTime.now();
-                            final picked = await showDateRangePicker(
-                              context: context,
-                              firstDate: now,
-                              lastDate: now.add(const Duration(days: 365)),
-                              initialDateRange: _selectedDateRange,
-                            );
-
-                            if (picked != null) {
-                              // Verify the entire range is available
-                              if (dataService.checkItemAvailability(widget.item.id, picked.start, picked.end)) {
-                                setState(() {
-                                  _selectedDateRange = picked;
-                                });
-                              } else {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('One or more dates in the selected range are unavailable.'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            }
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () => _reserveItem(dataService),
-                          child: Text(
-                            'CONFIRM RESERVATION',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _promoController,
+                                  onChanged: (_) => setState(() {}),
+                                  decoration: InputDecoration(
+                                    labelText:
+                                        'Promo Code (RPS10 / STUDENT20)',
+                                    prefixIcon:
+                                        const Icon(Icons.local_offer_outlined),
+                                    suffixText: discount > 0
+                                        ? '-${discount.toInt()}%'
+                                        : null,
+                                  ),
                                 ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                flex: 2,
+                                child: TextField(
+                                  controller: _noteController,
+                                  decoration: const InputDecoration(
+                                    labelText:
+                                        'Notes for Employee Approval (Optional)',
+                                    prefixIcon: Icon(Icons.notes_rounded),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: 22),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    discount > 0
+                                        ? 'Total Rental Fee (${discount.toInt()}% Discount Applied)'
+                                        : 'Total Estimated Rental Fee',
+                                    style: TextStyle(
+                                      color: cs.onSurfaceVariant,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  Text(
+                                    '€${totalCost.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w800,
+                                      color: cs.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              FilledButton.icon(
+                                onPressed: item.isAvailable
+                                    ? () {
+                                        final ticket =
+                                            _dataService.createBorrowRequest(
+                                          itemId: item.id,
+                                          quantity: _quantity,
+                                          startDate: _dateRange.start,
+                                          endDate: _dateRange.end,
+                                          customNote: _noteController.text,
+                                          promoCode: _promoController.text,
+                                        );
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            behavior: SnackBarBehavior.floating,
+                                            content: Text(
+                                              'Ticket #${ticket.id} submitted for Employee approval!',
+                                            ),
+                                          ),
+                                        );
+                                        Navigator.of(context).pop();
+                                      }
+                                    : null,
+                                icon: const Icon(
+                                    Icons.confirmation_number_rounded),
+                                label: const Text('Submit Reservation Ticket'),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildSpecCard(BuildContext context, String label, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.secondary, size: 24),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../models/user.dart';
 import '../services/data_service.dart';
 import 'main_menu_screen.dart';
 
+/// Prijavni in registracijski zaslon s preklopom Light/Dark teme in hitrimi testnimi računi.
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
@@ -12,290 +12,353 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  bool _isLogin = true;
-  bool _isLoading = false;
-  bool _showDevMode = false;
-  User? _selectedDevUser;
+  final _emailController = TextEditingController(text: 'admin@rps.local');
+  final _passwordController = TextEditingController(text: 'admin');
+  final _nameController = TextEditingController();
 
-  final _formKey = GlobalKey<FormState>();
-  final _loginNameController = TextEditingController();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _addressController = TextEditingController();
+  bool _isRegisterMode = false;
+  UserRole _selectedRole = UserRole.customer;
+  String? _errorMessage;
 
-  Future<void> _submitAuth(DataService dataService) async {
-    setState(() {
-      _isLoading = true;
-    });
+  final _dataService = DataService.instance;
 
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 1500));
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
 
-    if (!mounted) return;
+  void _handleSubmit() {
+    setState(() => _errorMessage = null);
 
-    if (_isLogin) {
-      // Mock Login logic - we'll just try to find the user by name for simplicity
-      final user = dataService.users.firstWhere(
-        (u) => u.name.toLowerCase() == _loginNameController.text.toLowerCase(),
-        orElse: () => User(id: '', firstName: '', lastName: '', role: UserRole.customer),
-      );
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
-      if (user.id.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not found.')),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainMenuScreen(user: user)),
-        );
-      }
-    } else {
-      // Register logic
-      if (_formKey.currentState!.validate()) {
-        final newUser = dataService.selfRegisterCustomer(
-          _firstNameController.text.trim(),
-          _lastNameController.text.trim(),
-          _phoneController.text.trim(),
-          _addressController.text.trim(),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful. Welcome!')),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainMenuScreen(user: newUser)),
-        );
-      }
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter both email and password.');
+      return;
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (_isRegisterMode) {
+      final name = _nameController.text.trim();
+      if (name.isEmpty) {
+        setState(() => _errorMessage = 'Please enter your full name.');
+        return;
+      }
+      try {
+        _dataService.registerUser(
+          name: name,
+          email: email,
+          password: password,
+          role: _selectedRole,
+          autoSignIn: true,
+        );
+        _navigateToMain();
+      } catch (e) {
+        setState(
+            () => _errorMessage = e.toString().replaceFirst('Exception: ', ''));
+      }
+    } else {
+      final user = _dataService.signIn(email, password);
+      if (user == null) {
+        setState(() => _errorMessage = 'Invalid credentials. Try again.');
+      } else {
+        _navigateToMain();
+      }
+    }
+  }
+
+  /// Gladka animirana navigacija v glavni meni
+  void _navigateToMain() {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, animation, _) => FadeTransition(
+          opacity: animation,
+          child: const MainMenuScreen(),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final dataService = Provider.of<DataService>(context);
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         actions: [
-          IconButton(
-            icon: Icon(
-              dataService.themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode,
+          // Gumb za takojšen preklop med čistim Light in Dark načinom
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: OutlinedButton.icon(
+              onPressed: _dataService.toggleThemeMode,
+              icon: Icon(
+                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                size: 18,
+              ),
+              label: Text(isDark ? 'Light Mode' : 'Dark Mode'),
             ),
-            onPressed: () {
-              dataService.setThemeMode(
-                dataService.themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark,
-              );
-            },
           ),
         ],
       ),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'RENTAL PLATFORM',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 48),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 280),
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: cs.outlineVariant),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                    blurRadius: 28,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: ListenableBuilder(
+                listenable: _dataService,
+                builder: (context, _) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            _isLogin ? 'SYSTEM LOGIN' : 'NEW REGISTRATION',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 24),
-                          if (_isLogin)
-                            TextFormField(
-                              controller: _loginNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Username *',
-                                prefixIcon: Icon(Icons.person),
-                                helperText: 'Enter your account username.',
-                              ),
-                              validator: (val) {
-                                if (val == null || val.isEmpty) {
-                                  return 'Please enter a valid username to continue.';
-                                }
-                                return null;
-                              },
-                            )
-                          else ...[
-                            TextFormField(
-                              controller: _firstNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'First Name *',
-                                prefixIcon: Icon(Icons.person),
-                                helperText: 'Your legal first name.',
-                              ),
-                              validator: (val) {
-                                if (val == null || val.isEmpty) return 'First name is required.';
-                                return null;
-                              },
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: cs.primary,
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _lastNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Last Name *',
-                                prefixIcon: Icon(Icons.person_outline),
-                                helperText: 'Your legal last name.',
-                              ),
-                              validator: (val) {
-                                if (val == null || val.isEmpty) return 'Last name is required.';
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _phoneController,
-                              decoration: const InputDecoration(
-                                labelText: 'Phone Number *',
-                                prefixIcon: Icon(Icons.phone),
-                                helperText: 'Numeric characters only.',
-                              ),
-                              keyboardType: TextInputType.phone,
-                              validator: (val) {
-                                if (val == null || val.isEmpty) return 'Phone number is required.';
-                                if (double.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) == null) {
-                                  return 'Please enter a valid numeric phone number.';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _addressController,
-                              decoration: const InputDecoration(
-                                labelText: 'Delivery/Billing Address *',
-                                prefixIcon: Icon(Icons.location_on),
-                                helperText: 'Your full address.',
-                              ),
-                              validator: (val) {
-                                if (val == null || val.isEmpty) return 'Address is required.';
-                                return null;
-                              },
-                            ),
-                          ],
-                          const SizedBox(height: 32),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: FilledButton(
-                              onPressed: _isLoading ? null : () => _submitAuth(dataService),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Text(_isLogin ? 'ENTER' : 'REGISTER'),
+                            child: Icon(
+                              Icons.precision_manufacturing_rounded,
+                              color: cs.onPrimary,
+                              size: 26,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _isLogin = !_isLogin;
-                              });
-                            },
-                            child: Text(_isLogin
-                                ? 'Need an account? Register'
-                                : 'Already have an account? Login'),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'RPS Rental Hub',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: cs.onSurface,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                Text(
+                                  'Equipment & Ticket Management System',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 48),
-                GestureDetector(
-                  onTap: () => setState(() => _showDevMode = !_showDevMode),
-                  child: Text(
-                    'DEV MODE',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                if (_showDevMode) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Theme.of(context).colorScheme.outline),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                    child: Column(
-                      children: [
-                        DropdownButton<User>(
-                          isExpanded: true,
-                          value: _selectedDevUser,
-                          hint: const Text('Select a dummy user'),
-                          items: dataService.users.map((User user) {
-                            return DropdownMenuItem<User>(
-                              value: user,
-                              child: Text('${user.name} (${user.role.name})'),
-                            );
-                          }).toList(),
-                          onChanged: (User? newValue) {
-                            setState(() {
-                              _selectedDevUser = newValue;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: Theme.of(context).colorScheme.primary,
-                            side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                      const SizedBox(height: 26),
+                      SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(
+                            value: false,
+                            label: Text('Sign In'),
+                            icon: Icon(Icons.login_rounded, size: 18),
                           ),
-                          onPressed: _selectedDevUser == null
-                              ? null
-                              : () {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          MainMenuScreen(user: _selectedDevUser!),
-                                    ),
+                          ButtonSegment(
+                            value: true,
+                            label: Text('New Test User'),
+                            icon: Icon(Icons.person_add_alt_1_rounded, size: 18),
+                          ),
+                        ],
+                        selected: {_isRegisterMode},
+                        onSelectionChanged: (s) {
+                          setState(() {
+                            _isRegisterMode = s.first;
+                            _errorMessage = null;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        child: Column(
+                          children: [
+                            if (_isRegisterMode) ...[
+                              TextField(
+                                controller: _nameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Full Name',
+                                  prefixIcon: Icon(Icons.badge_outlined),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+                            TextField(
+                              controller: _emailController,
+                              decoration: const InputDecoration(
+                                labelText: 'Email Address',
+                                prefixIcon: Icon(Icons.alternate_email_rounded),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextField(
+                              controller: _passwordController,
+                              obscureText: true,
+                              onSubmitted: (_) => _handleSubmit(),
+                              decoration: const InputDecoration(
+                                labelText: 'Password',
+                                prefixIcon: Icon(Icons.lock_outline_rounded),
+                              ),
+                            ),
+                            if (_isRegisterMode) ...[
+                              const SizedBox(height: 14),
+                              DropdownButtonFormField<UserRole>(
+                                initialValue: _selectedRole,
+                                decoration: const InputDecoration(
+                                  labelText: 'Account Role (Local Testing)',
+                                  prefixIcon:
+                                      Icon(Icons.verified_user_outlined),
+                                ),
+                                items: UserRole.values.map((r) {
+                                  return DropdownMenuItem(
+                                    value: r,
+                                    child: Text(r.roleTitle),
                                   );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() => _selectedRole = val);
+                                  }
                                 },
-                          child: const Text('QUICK LOGIN'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: cs.errorContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            _errorMessage!,
+                            style: TextStyle(
+                              color: cs.onErrorContainer,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ],
+                      const SizedBox(height: 22),
+                      FilledButton.icon(
+                        onPressed: _handleSubmit,
+                        icon: Icon(
+                          _isRegisterMode
+                              ? Icons.person_add_rounded
+                              : Icons.arrow_forward_rounded,
+                        ),
+                        label: Text(
+                          _isRegisterMode
+                              ? 'Create Account & Sign In'
+                              : 'Sign In to Workspace',
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Divider(color: cs.outlineVariant),
+                      const SizedBox(height: 12),
+                      Text(
+                        'INSTANT 1-CLICK DEMO ACCOUNTS (ADMIN / EMPLOYEE / CUSTOMER)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _dataService.users.map((u) {
+                          final roleColor = u.isAdmin
+                              ? const Color(0xFFE11D48)
+                              : u.isEmployee
+                                  ? const Color(0xFF0284C7)
+                                  : const Color(0xFF059669);
+                          return ActionChip(
+                            side: BorderSide(
+                              color: roleColor.withValues(alpha: 0.4),
+                            ),
+                            avatar: CircleAvatar(
+                              backgroundColor: roleColor.withValues(alpha: 0.15),
+                              child: Icon(
+                                u.isAdmin
+                                    ? Icons.admin_panel_settings_rounded
+                                    : u.isEmployee
+                                        ? Icons.support_agent_rounded
+                                        : Icons.person_rounded,
+                                size: 14,
+                                color: roleColor,
+                              ),
+                            ),
+                            label: Text(
+                              u.name,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: cs.onSurface,
+                              ),
+                            ),
+                            onPressed: () {
+                              _dataService.quickSignIn(u);
+                              _navigateToMain();
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+extension _UserRoleLabelExt on UserRole {
+  String get roleTitle {
+    switch (this) {
+      case UserRole.admin:
+        return 'ADMIN (Full System & ROI Control)';
+      case UserRole.employee:
+        return 'EMPLOYEE (Ticket & Stock Operations)';
+      case UserRole.customer:
+        return 'CUSTOMER (Store & Reservations)';
+    }
   }
 }
