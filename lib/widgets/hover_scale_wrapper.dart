@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 
-class HoverScale extends StatefulWidget {
+class HoverScaleWrapper extends StatefulWidget {
   final Widget child;
-  const HoverScale({Key? key, required this.child}) : super(key: key);
+  const HoverScaleWrapper({super.key, required this.child});
 
   @override
-  State<HoverScale> createState() => _HoverScaleState();
+  State<HoverScaleWrapper> createState() => _HoverScaleWrapperState();
 }
 
-class _HoverScaleState extends State<HoverScale> {
+class _HoverScaleWrapperState extends State<HoverScaleWrapper> {
   bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
+      cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedScale(

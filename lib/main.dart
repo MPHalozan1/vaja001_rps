@@ -35,7 +35,9 @@ class MyApp extends StatelessWidget {
           surface: Colors.white,
           onSurface: Color(0xFF1E293B),
           error: Color(0xFFEF4444),
-          surfaceContainerHighest: Color(0xFFF1F5F9), // Light Gray for containers
+          surfaceContainerHighest: Color(
+            0xFFF1F5F9,
+          ), // Light Gray for containers
           outline: Color(0xFFE2E8F0),
         ),
         textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
@@ -59,15 +61,15 @@ class MyApp extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
           backgroundColor: const Color(0xFF1E293B),
           contentTextStyle: const TextStyle(color: Colors.white),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFF0F172A),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           ),
         ),
@@ -86,7 +88,10 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
@@ -110,7 +115,9 @@ class MyApp extends StatelessWidget {
           surface: Color(0xFF1E293B), // Lighter Slate
           onSurface: Colors.white,
           error: Color(0xFFEF4444),
-          surfaceContainerHighest: Color(0xFF334155), // Dark Gray for containers
+          surfaceContainerHighest: Color(
+            0xFF334155,
+          ), // Dark Gray for containers
           outline: Color(0xFF475569),
         ),
         textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
@@ -134,15 +141,15 @@ class MyApp extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
           backgroundColor: Colors.white,
           contentTextStyle: const TextStyle(color: Color(0xFF0F172A)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: Colors.white,
             foregroundColor: const Color(0xFF0F172A),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           ),
         ),
@@ -161,7 +168,10 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
@@ -174,9 +184,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       initialRoute: '/',
-      routes: {
-        '/': (context) => const SignInScreen(),
-      },
+      routes: {'/': (context) => const SignInScreen()},
     );
   }
 }
