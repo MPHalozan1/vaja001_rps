@@ -174,11 +174,14 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                                   : null,
                             ),
                             const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton(
-                                onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
+                            Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 400),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton(
+                                    onPressed: () {
+                                      if (_formKey.currentState!.validate()) {
                                     dataService.updateUserProfile(
                                       upToDateUser,
                                       _firstNameController.text.trim(),
@@ -195,7 +198,9 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                                     );
                                   }
                                 },
-                                child: const Text('SAVE CHANGES'),
+                                    child: const Text('SAVE CHANGES'),
+                                  ),
+                                ),
                               ),
                             ),
                           ],

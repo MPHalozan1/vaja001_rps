@@ -414,24 +414,52 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
 
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: _locationController,
+                        decoration: const InputDecoration(
+                          labelText: 'Intended Location of Use *',
+                          helperText: 'E.g., Conference Room A, Building 4',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.location_on),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      CheckboxListTile(
+                        title: const Text('I accept the liability controls and conditions *'),
+                        subtitle: const Text('By checking this, you agree to be responsible for any damages or loss.'),
+                        value: _liabilityAccepted,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            _liabilityAccepted = value ?? false;
+                          });
+                        },
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                      ),
                       const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () => _reserveItem(dataService),
-                          child: Text(
-                            'CONFIRM RESERVATION',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: FilledButton(
+                              style: FilledButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
+                              ),
+                              onPressed: () => _reserveItem(dataService),
+                              child: Text(
+                                'CONFIRM RESERVATION',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context).colorScheme.onPrimary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
