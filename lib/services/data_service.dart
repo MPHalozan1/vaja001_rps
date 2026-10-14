@@ -172,18 +172,18 @@ class DataService extends ChangeNotifier {
     bills.add(Bill(id: 'b2', customerId: 'u5', employeeId: 'u3', amount: 50.0, borrowRequestId: 'br2'));
 
     // 1 Admin
-    users.add(User(id: 'u1', name: 'Alice Admin', role: UserRole.admin));
+    users.add(User(id: 'u1', firstName: 'Alice', lastName: 'Admin', role: UserRole.admin));
 
     // 2 Employees
-    users.add(User(id: 'u2', name: 'Bob Employee', role: UserRole.employee));
-    users.add(User(id: 'u3', name: 'Charlie Employee', role: UserRole.employee));
+    users.add(User(id: 'u2', firstName: 'Bob', lastName: 'Employee', role: UserRole.employee));
+    users.add(User(id: 'u3', firstName: 'Charlie', lastName: 'Employee', role: UserRole.employee));
 
     // 5 Customers
-    users.add(User(id: 'u4', name: 'David Smith', role: UserRole.customer));
-    users.add(User(id: 'u5', name: 'Eva Johnson', role: UserRole.customer));
-    users.add(User(id: 'u6', name: 'Frank Williams', role: UserRole.customer));
-    users.add(User(id: 'u7', name: 'Grace Brown', role: UserRole.customer));
-    users.add(User(id: 'u8', name: 'Henry Jones', role: UserRole.customer));
+    users.add(User(id: 'u4', firstName: 'David', lastName: 'Smith', role: UserRole.customer));
+    users.add(User(id: 'u5', firstName: 'Eva', lastName: 'Johnson', role: UserRole.customer));
+    users.add(User(id: 'u6', firstName: 'Frank', lastName: 'Williams', role: UserRole.customer));
+    users.add(User(id: 'u7', firstName: 'Grace', lastName: 'Brown', role: UserRole.customer));
+    users.add(User(id: 'u8', firstName: 'Henry', lastName: 'Jones', role: UserRole.customer));
 
     // Items
     // IT & Computers
@@ -266,7 +266,7 @@ class DataService extends ChangeNotifier {
   }
 
   // --- User Management ---
-  void registerNewUser(User currentUser, String name, UserRole role) {
+  void registerNewUser(User currentUser, String firstName, String lastName, UserRole role) {
     if (currentUser.role != UserRole.admin) {
       throw Exception('Unauthorized: Only Admins can add users.');
     }
@@ -274,22 +274,22 @@ class DataService extends ChangeNotifier {
       throw Exception('Unauthorized: Admins can only add Employees, not Customers.');
     }
     final newId = 'u${users.length + 1}'; // Simple ID generation
-    users.add(User(id: newId, name: name, role: role));
+    users.add(User(id: newId, firstName: firstName, lastName: lastName, role: role));
     notifyListeners();
   }
 
-  User selfRegisterCustomer(String name, String contactInfo) {
+  User selfRegisterCustomer(String firstName, String lastName, String phoneNumber, String address) {
     final newId = 'u${users.length + 1}'; // Simple ID generation
-    final newUser = User(id: newId, name: name, role: UserRole.customer, contactInfo: contactInfo);
+    final newUser = User(id: newId, firstName: firstName, lastName: lastName, role: UserRole.customer, phoneNumber: phoneNumber, address: address);
     users.add(newUser);
     notifyListeners();
     return newUser;
   }
 
-  void updateUserProfile(User currentUser, String name, String contactInfo) {
+  void updateUserProfile(User currentUser, String firstName, String lastName, String phoneNumber, String address) {
     final index = users.indexWhere((user) => user.id == currentUser.id);
     if (index != -1) {
-      users[index] = users[index].copyWith(name: name, contactInfo: contactInfo);
+      users[index] = users[index].copyWith(firstName: firstName, lastName: lastName, phoneNumber: phoneNumber, address: address);
       notifyListeners();
     }
   }
@@ -309,7 +309,7 @@ class DataService extends ChangeNotifier {
     final index = users.indexWhere((user) => user.id == id);
     if (index != -1) {
       final oldUser = users[index];
-      users[index] = User(id: oldUser.id, name: oldUser.name, role: newRole, borrowedItemIds: oldUser.borrowedItemIds);
+      users[index] = User(id: oldUser.id, firstName: oldUser.firstName, lastName: oldUser.lastName, role: newRole, borrowedItemIds: oldUser.borrowedItemIds);
       notifyListeners();
     }
   }

@@ -139,9 +139,23 @@ class _ItemCatalogScreenState extends State<ItemCatalogScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.warning_amber_rounded, size: 64, color: Theme.of(context).colorScheme.secondary),
+                                  Icon(Icons.inbox_outlined, size: 80, color: Theme.of(context).colorScheme.outline),
                                   const SizedBox(height: 16),
-                                  const Text('NO ITEMS FOUND', style: TextStyle(letterSpacing: 2)),
+                                  Text(
+                                    'NO ITEMS FOUND',
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Try selecting a different category.',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
                                 ],
                               ),
                             )
